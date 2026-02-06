@@ -1,3 +1,4 @@
+import User from "../models/User.js";
 import connectDB from "../lib/db.js";
 
 export default async function handler(req, res) {
