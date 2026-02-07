@@ -26,14 +26,7 @@ export default async function handler(req, res) {
   }
 
   const normalizedEmail = email.toLowerCase();
-
-  const emailDomain = normalizedEmail.split("@")[1];
-
-  if (!ALLOWED_EMAIL_DOMAINS.includes(emailDomain)) {
-    return res.status(403).json({
-        error: "Only mu email IDs are allowed",
-    });
-    }
+  
 
   try {
     await connectDB();
