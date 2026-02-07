@@ -4,6 +4,10 @@ import connectDB from "../../lib/db.js";
 import EmailOtp from "../../models/EmailOtp.js";
 import { sendOtp } from "../../lib/mailer.js";
 
+const ALLOWED_EMAIL_DOMAINS = [
+    "mahindrauniversity.edu.in"
+  ];
+
 function generateOtp() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
@@ -22,6 +26,14 @@ export default async function handler(req, res) {
   }
 
   const normalizedEmail = email.toLowerCase();
+
+  const emailDomain = normalizedEmail.split("@")[1];
+
+  if (!ALLOWED_EMAIL_DOMAINS.includes(emailDomain)) {
+    return res.status(403).json({
+        error: "Only college email IDs are allowed",
+    });
+    }
 
   try {
     await connectDB();
