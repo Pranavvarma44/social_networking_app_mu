@@ -31,7 +31,7 @@ export default async function handler(req, res) {
 
   if (!ALLOWED_EMAIL_DOMAINS.includes(emailDomain)) {
     return res.status(403).json({
-        error: "Only college email IDs are allowed",
+        error: "Only mu email IDs are allowed",
     });
     }
 
