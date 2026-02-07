@@ -40,7 +40,7 @@ export default async function handler(req,res){
             otp:otpHash,
             expiresAt:new Date(Date.now()+10*60*1000),
         });
-        await send(normalizedEmail, otp);
+        await sendOtp(normalizedEmail, otp);
         return res.status(201).json({
             message:"User registered. OTP sent to email.",
         });
