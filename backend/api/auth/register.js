@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import User from "../../models/User.js";
 import connectDB from "../../lib/db.js";
 import EmailOtp from "../../models/EmailOtp.js";
+import { sendOtp } from "../../lib/mailer.js";
 
 function generateOtp(){
     return Math.floor(100000+Math.random()*900000).toString();
@@ -39,7 +40,7 @@ export default async function handler(req,res){
             otp:otpHash,
             expiresAt:new Date(Date.now()+10*60*1000),
         });
-        console.log(`OTP for ${email}: ${otp}`);
+        await send(normalizedEmail, otp);
         return res.status(201).json({
             message:"User registered. OTP sent to email.",
         });

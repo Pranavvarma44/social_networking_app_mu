@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import connectDB from "../../lib/db.js";
 import User from "../../models/User.js";
 import EmailOtp from "../../models/EmailOtp.js";
+import { sendOtp } from "../../lib/mailer.js";
 
 function generateOtp() {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -48,7 +49,7 @@ export default async function handler(req, res) {
       expiresAt: new Date(Date.now() + 10 * 60 * 1000), 
     });
 
-    console.log(`Resent OTP for ${normalizedEmail}: ${otp}`);
+    await sendOtp(normalizedEmail, otp);
 
     return res.status(200).json({
       message: "OTP resent successfully",
