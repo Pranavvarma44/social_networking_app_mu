@@ -3,7 +3,7 @@ import User from "../../models/User";
 import  requireAuth  from "../../lib/auth";
 
 export default async function handler(req,res){
-    if(req.method()!=="PUT"){
+    if(req.method!=="PUT"){
         return res.status(405).json({error:"Method not allowed"});
 
     }
