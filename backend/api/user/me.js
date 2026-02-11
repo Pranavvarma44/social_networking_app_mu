@@ -1,4 +1,6 @@
 import { requireAuth } from "../../lib/auth.js";
+import connectDB from "../../lib/db.js";
+import User from "../../models/User.js";
 
 export default async function handler(req, res) {
   const auth = await requireAuth(req, res);
@@ -7,7 +9,11 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: auth.error });
   }
 
+  await connectDB();
+
+  const user=await User.findById(auth.user.userId).select("-password -__v");
+
   return res.status(200).json({
-    user: auth.user,
+    user
   });
 }

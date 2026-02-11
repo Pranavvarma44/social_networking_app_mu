@@ -16,6 +16,29 @@ const userSchema = new mongoose.Schema(
       index: true,
     },
 
+    bio:{
+      type: String,
+      maxlength:300,
+    },
+
+    department:{
+      type:String,
+      trim:true,
+    },
+    graduationYear:{
+      type:Number,
+
+    },
+    skills:[{
+      type:String,
+      trim:true,
+    }],
+
+    profilePicture:{
+      type:String,
+    },
+
+
     password: {
       type: String,
       required: true,
@@ -23,7 +46,7 @@ const userSchema = new mongoose.Schema(
 
     role: {
       type: String,
-      enum: ["student", "alumni"],
+      enum: ["student", "alumni","admin"],
       default: "student",
     },
 
@@ -33,9 +56,9 @@ const userSchema = new mongoose.Schema(
     },
   },
   {
-    timestamps: true, // adds createdAt & updatedAt
+    timestamps: true, 
   }
 );
 
-// Prevent model overwrite error in serverless
+
 export default mongoose.models.User || mongoose.model("User", userSchema);
