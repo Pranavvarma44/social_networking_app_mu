@@ -12,7 +12,7 @@ export default async function handler(req, res) {
 
   await connectDB();
 
-  const user=await User.findById(auth.user.userId).select("-password -__v");
+  const user=await User.findById(auth.user._id).select("-password -__v");
 
   return res.status(200).json({
     user

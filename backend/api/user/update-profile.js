@@ -16,7 +16,7 @@ export default async function handler(req,res){
     const { name, bio, department, graduationYear, skills, profileImage } =req.body;
 
     await connectDB();
-    const updatedUser=await User.findByIdAndUpdate(auth.user.userId,{
+    const updatedUser=await User.findByIdAndUpdate(auth.user._id,{
         name,
         bio,
         department,
