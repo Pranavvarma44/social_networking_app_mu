@@ -1,6 +1,6 @@
 import connectDB from "../../lib/db";
 import User from "../../models/User";
-import  requireAuth  from "../../lib/auth";
+import  {requireAuth } from "../../lib/auth";
 
 export default async function handler(req,res){
     if(req.method!=="PUT"){
