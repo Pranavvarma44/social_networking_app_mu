@@ -4,6 +4,7 @@ import User from "../../models/User.js";
 
 export default async function handler(req, res) {
   const auth = await requireAuth(req, res);
+  console.log("Decoded user from JWT:", auth.user);
 
   if (auth.error) {
     return res.status(401).json({ error: auth.error });
