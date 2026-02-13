@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
-import connectDB from "./db.js";
 import User from "../models/User.js";
+import connectDB from "./db.js";
 
 export async function requireAuth(req, res) {
   const authHeader = req.headers.authorization;
@@ -15,7 +15,8 @@ export async function requireAuth(req, res) {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     await connectDB();
-    const user = await User.findById(decoded.userId).select("-password");
+
+    const user = await User.findById(decoded.userId);
 
     if (!user) {
       return { error: "User not found" };
@@ -23,6 +24,6 @@ export async function requireAuth(req, res) {
 
     return { user };
   } catch (err) {
-    return { error: "Invalid or expired token" };
+    return { error: "Invalid token" };
   }
 }
