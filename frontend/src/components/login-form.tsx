@@ -28,7 +28,7 @@ export function LoginForm({
 
     try {
       const res = await axios.post(
-        "https://social-networking-app-mu.onrender.com/api/auth/login",
+        `${import.meta.env.VITE_API_URL}/auth/login`,
         { email, password }
       )
 
