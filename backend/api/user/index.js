@@ -4,20 +4,30 @@ import { paginate } from "../../lib/paginate.js";
 import { requireAuth } from "../../lib/auth.js";
 
 export default async function handler(req, res) {
+  // ✅ CORS HEADERS
+  res.setHeader("Access-Control-Allow-Origin", "*"); 
+  res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+  // ✅ Handle preflight request
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  /*const auth = await requireAuth(req, res);
+  /*
+  const auth = await requireAuth(req, res);
   if (auth.error) {
     return res.status(401).json({ error: auth.error });
   }
-    */
+  */
 
   await connectDB();
 
   try {
-    // 🔎 Optional search
     const search = req.query.search;
 
     let filter = {};
