@@ -50,6 +50,13 @@ const userSchema = new mongoose.Schema(
       default: "student",
     },
 
+    followers: [
+      { type: mongoose.Schema.Types.ObjectId, ref: "User" }
+    ],
+    following: [
+      { type: mongoose.Schema.Types.ObjectId, ref: "User" }
+    ],
+
     emailVerified: {
       type: Boolean,
       default: false,
