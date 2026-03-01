@@ -5,18 +5,35 @@ import requireAuth from "../middleware/requireAuth.js";
 const router = express.Router();
 
 router.get("/", async (req, res) => {
-  try {
-    const opportunities = await Opportunity.find()
-      .populate("postedBy", "name role")
-      .sort({ createdAt: -1 });
-
-    res.json({ opportunities });
-
-  } catch (error) {
-    console.error("Fetch opportunities error:", error);
-    res.status(500).json({ error: "Server error" });
-  }
-});
+    try {
+      const page = parseInt(req.query.page) > 0 ? parseInt(req.query.page) : 1;
+      const limit = parseInt(req.query.limit) > 0 ? parseInt(req.query.limit) : 10;
+  
+      const skip = (page - 1) * limit;
+  
+      const total = await Opportunity.countDocuments();
+  
+      const opportunities = await Opportunity.find()
+        .populate("postedBy", "name email role")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+  
+      res.json({
+        data: opportunities,
+        pagination: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit)
+        }
+      });
+  
+    } catch (error) {
+      console.error("Fetch opportunities error:", error);
+      res.status(500).json({ error: "Server error" });
+    }
+  });
 
 router.post("/", requireAuth, async (req, res) => {
   try {
