@@ -8,10 +8,11 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const auth = await requireAuth(req, res);
+  /*const auth = await requireAuth(req, res);
   if (auth.error) {
     return res.status(401).json({ error: auth.error });
   }
+    */
 
   await connectDB();
 
