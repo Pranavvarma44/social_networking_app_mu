@@ -6,31 +6,70 @@ const router = express.Router();
 
 router.get("/", async (req, res) => {
     try {
-      const page = parseInt(req.query.page) > 0 ? parseInt(req.query.page) : 1;
-      const limit = parseInt(req.query.limit) > 0 ? parseInt(req.query.limit) : 10;
+      const {
+        page = 1,
+        limit = 10,
+        search,
+        location,
+        company,
+        type,
+        category,
+        skills,
+        sort = "newest",
+      } = req.query;
   
-      const skip = (page - 1) * limit;
+      const query = {};
   
-      const total = await Opportunity.countDocuments();
+      // 🔎 Search by title (case insensitive)
+      if (search) {
+        query.title = { $regex: search, $options: "i" };
+      }
   
-      const opportunities = await Opportunity.find()
-        .populate("postedBy", "name email role")
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit);
+      // 📍 Location filter
+      if (location) {
+        query.location = { $regex: location, $options: "i" };
+      }
+  
+      // 🏢 Company filter
+      if (company) {
+        query.company = { $regex: company, $options: "i" };
+      }
+  
+      // 💼 Type filter
+      if (type) {
+        query.type = type;
+      }
+  
+      // 🏷 Category filter
+      if (category) {
+        query.category = category;
+      }
+  
+      // 🧠 Skills filter (array field)
+      if (skills) {
+        query.skills = { $in: skills.split(",") };
+      }
+  
+      const sortOption =
+        sort === "oldest"
+          ? { createdAt: 1 }
+          : { createdAt: -1 };
+  
+      const opportunities = await Opportunity.find(query)
+        .sort(sortOption)
+        .skip((page - 1) * limit)
+        .limit(Number(limit));
+  
+      const total = await Opportunity.countDocuments(query);
   
       res.json({
-        data: opportunities,
-        pagination: {
-          total,
-          page,
-          limit,
-          totalPages: Math.ceil(total / limit)
-        }
+        total,
+        page: Number(page),
+        totalPages: Math.ceil(total / limit),
+        opportunities,
       });
-  
     } catch (error) {
-      console.error("Fetch opportunities error:", error);
+      console.log("Fetch opportunities error:", error);
       res.status(500).json({ error: "Server error" });
     }
   });
