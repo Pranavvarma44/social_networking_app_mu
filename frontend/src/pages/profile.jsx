@@ -10,7 +10,7 @@ function Profile() {
     const fetchUser = async () => {
       try {
         const res = await axios.get(
-          `https://social-networking-app-mu.vercel.app/api/users/${id}`
+          `https://social-networking-app-mu.vercel.app/api/user/${id}`
         );
 
         setUser(res.data.user);
