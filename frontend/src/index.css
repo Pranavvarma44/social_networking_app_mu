@@ -1,0 +1,84 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* =========================
+   GLOBAL RESET
+   ========================= */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* =========================
+   THEME VARIABLES
+   ========================= */
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
+/* =========================
+   DEFAULT MODE = MATTE BLACK
+   ========================= */
+:root {
+  --radius: 0.75rem;
+
+  /* PAGE BACKGROUND (NOT GREY, NOT PURE BLACK) */
+  --background: #121212;
+  --foreground: #f2f2f2;
+
+  /* CARD */
+  --card: #181818;
+  --card-foreground: #ffffff;
+
+  /* UI */
+  --border: rgba(255, 255, 255, 0.06);
+  --input: rgba(255, 255, 255, 0.10);
+  --ring: rgba(255, 255, 255, 0.35);
+}
+
+/* =========================
+   GLOBAL BASE STYLES
+   ========================= */
+@layer base {
+  *,
+  ::before,
+  ::after {
+    @apply border-border outline-ring/50;
+  }
+
+  html,
+  body,
+  #root {
+    min-height: 100%;
+    width: 100%;
+    background-color: var(--background);
+  }
+
+  body {
+    @apply text-foreground;
+    background: radial-gradient(
+      1200px 600px at top center,
+      #1a1a1a 0%,
+      #121212 45%,
+      #0f0f0f 100%
+    );
+    overflow-x: hidden;
+  }
+}
