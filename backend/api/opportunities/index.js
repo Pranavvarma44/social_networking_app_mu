@@ -7,24 +7,38 @@ import { paginate } from "../../lib/paginate.js";
 export default async function handler(req, res) {
   await connectDB();
   if (req.method === "GET") {
-    const search = req.query.search;
+    const { title, company, description, type, location, postedBy } = req.query;
   
     let filter = {};
   
-    if (search) {
-      filter = {
-        $or: [
-          { title: { $regex: search, $options: "i" } },
-          { company: { $regex: search, $options: "i" } },
-          { description: { $regex: search, $options: "i" } },
-        ],
-      };
+    if (title) {
+      filter.title = { $regex: title, $options: "i" };
+    }
+  
+    if (company) {
+      filter.company = { $regex: company, $options: "i" };
+    }
+  
+    if (description) {
+      filter.description = { $regex: description, $options: "i" };
+    }
+  
+    if (type) {
+      filter.type = type;
+    }
+  
+    if (location) {
+      filter.location = { $regex: location, $options: "i" };
+    }
+  
+    if (postedBy) {
+      filter.postedBy = postedBy;
     }
   
     const result = await paginate(Opportunity, filter, req.query, {
       sort: { createdAt: -1 },
     });
-
+  
     await Opportunity.populate(result.data, {
       path: "postedBy",
       select: "name email role",
