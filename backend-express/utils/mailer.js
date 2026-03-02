@@ -1,24 +1,17 @@
 import nodemailer from "nodemailer";
 
+const transporter = nodemailer.createTransport({
+  host: process.env.MAILTRAP_HOST,
+  port: Number(process.env.MAILTRAP_PORT),
+  auth: {
+    user: process.env.MAILTRAP_USER,
+    pass: process.env.MAILTRAP_PASS,
+  },
+});
+
 export const sendOtp = async (email, otp) => {
-  // Debug (you can remove after it works)
-  console.log("EMAIL_USER:", process.env.EMAIL_USER);
-  console.log("EMAIL_PASS:", process.env.EMAIL_PASS);
-
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    throw new Error("Email credentials not defined in environment variables");
-  }
-
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  });
-
   await transporter.sendMail({
-    from: process.env.EMAIL_USER,
+    from: '"MU Social" <no-reply@musocial.com>',
     to: email,
     subject: "Email Verification OTP",
     html: `
@@ -28,4 +21,6 @@ export const sendOtp = async (email, otp) => {
       <p>This code is valid for 10 minutes.</p>
     `,
   });
+
+  console.log("OTP sent to Mailtrap inbox");
 };
