@@ -1,26 +1,25 @@
-import nodemailer from "nodemailer";
+import SibApiV3Sdk from "sib-api-v3-sdk";
 
-const transporter = nodemailer.createTransport({
-  host: process.env.MAILTRAP_HOST,
-  port: Number(process.env.MAILTRAP_PORT),
-  auth: {
-    user: process.env.MAILTRAP_USER,
-    pass: process.env.MAILTRAP_PASS,
-  },
-});
+const client = SibApiV3Sdk.ApiClient.instance;
+client.authentications["api-key"].apiKey = process.env.BREVO_API_KEY;
+
+const emailApi = new SibApiV3Sdk.TransactionalEmailsApi();
 
 export const sendOtp = async (email, otp) => {
-  await transporter.sendMail({
-    from: '"MU Social" <no-reply@musocial.com>',
-    to: email,
+  await emailApi.sendTransacEmail({
+    sender: {
+      email: "your_verified_email@gmail.com",
+      name: "MU Social"
+    },
+    to: [{ email }],
     subject: "Email Verification OTP",
-    html: `
+    htmlContent: `
       <h2>Email Verification</h2>
       <p>Your OTP is:</p>
       <h1>${otp}</h1>
       <p>This code is valid for 10 minutes.</p>
-    `,
+    `
   });
 
-  console.log("OTP sent to Mailtrap inbox");
+  console.log("Real OTP email sent");
 };
