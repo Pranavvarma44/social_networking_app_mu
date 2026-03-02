@@ -8,8 +8,8 @@ const emailApi = new SibApiV3Sdk.TransactionalEmailsApi();
 export const sendOtp = async (email, otp) => {
   await emailApi.sendTransacEmail({
     sender: {
-      email: "your_verified_email@gmail.com",
-      name: "MU Social"
+      email: "pranavrudraraju6@gmail.com",
+      name: "mu social"
     },
     to: [{ email }],
     subject: "Email Verification OTP",
