@@ -27,7 +27,6 @@ export function RegisterForm({
 
   const API = import.meta.env.VITE_API_URL
 
-  // STEP 1: Register (send OTP)
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -153,7 +152,7 @@ export function RegisterForm({
         <Field>
           <FieldDescription className="text-center">
             Already have an account?{" "}
-            <a href="/login" className="underline underline-offset-4">
+            <a href="/" className="underline underline-offset-4">
               Log in
             </a>
           </FieldDescription>
