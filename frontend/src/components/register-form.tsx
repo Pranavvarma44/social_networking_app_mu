@@ -16,6 +16,8 @@ export function RegisterForm({
   ...props
 }: React.ComponentProps<"form">) {
 
+  const API = import.meta.env.VITE_API_URL
+
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [name, setName] = useState("")
@@ -25,30 +27,34 @@ export function RegisterForm({
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
-  const API = import.meta.env.VITE_API_URL
-
+  // STEP 1: REGISTER
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError("")
 
     try {
-      await axios.post(
+      const res = await axios.post(
         `${API}/auth/register`,
         { name, email, password }
       )
 
-      // After successful register → show OTP field
-      setShowOtp(true)
+      console.log("Register response:", res.data)
+
+      // If backend returns success (200 or 201)
+      if (res.status === 200 || res.status === 201) {
+        setShowOtp(true)
+      }
 
     } catch (err: any) {
+      console.error("Register error:", err.response?.data)
       setError(err.response?.data?.error || "Registration failed")
     } finally {
       setLoading(false)
     }
   }
 
-  // STEP 2: Verify OTP
+  // STEP 2: VERIFY OTP
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -60,12 +66,15 @@ export function RegisterForm({
         { email, otp }
       )
 
-      // Save JWT after verification
-      localStorage.setItem("token", res.data.token)
+      console.log("OTP verify response:", res.data)
 
-      window.location.href = "/dashboard"
+      if (res.status === 200) {
+        localStorage.setItem("token", res.data.token)
+        window.location.href = "/dashboard"
+      }
 
     } catch (err: any) {
+      console.error("OTP error:", err.response?.data)
       setError(err.response?.data?.error || "Invalid OTP")
     } finally {
       setLoading(false)
