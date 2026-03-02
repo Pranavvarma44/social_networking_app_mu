@@ -19,28 +19,55 @@ export function RegisterForm({
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [name, setName] = useState("")
+  const [otp, setOtp] = useState("")
+  const [showOtp, setShowOtp] = useState(false)
+
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const API = import.meta.env.VITE_API_URL
+
+  // STEP 1: Register (send OTP)
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError("")
+
+    try {
+      await axios.post(
+        `${API}/auth/register`,
+        { name, email, password }
+      )
+
+      // After successful register → show OTP field
+      setShowOtp(true)
+
+    } catch (err: any) {
+      setError(err.response?.data?.error || "Registration failed")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // STEP 2: Verify OTP
+  const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError("")
 
     try {
       const res = await axios.post(
-        `${import.meta.env.VITE_API_URL}/auth/register`,
-        { email,name, password }
+        `${API}/auth/verify-otp`,
+        { email, otp }
       )
 
-      // Save JWT
+      // Save JWT after verification
       localStorage.setItem("token", res.data.token)
 
-      // Redirect after login
       window.location.href = "/dashboard"
 
     } catch (err: any) {
-      setError(err.response?.data?.error || "registeration failed")
+      setError(err.response?.data?.error || "Invalid OTP")
     } finally {
       setLoading(false)
     }
@@ -48,52 +75,66 @@ export function RegisterForm({
 
   return (
     <form
-      onSubmit={handleSubmit}
+      onSubmit={showOtp ? handleVerifyOtp : handleRegister}
       className={cn("flex flex-col gap-6", className)}
       {...props}
     >
       <FieldGroup>
         <div className="flex flex-col items-center gap-1 text-center">
-          <h1 className="text-2xl font-bold">signup</h1>
-          <p className="text-muted-foreground text-sm text-balance">
-            Enter your details below to sign in to your account
-          </p>
+          <h1 className="text-2xl font-bold">
+            {showOtp ? "Verify OTP" : "Sign Up"}
+          </h1>
         </div>
 
-        <Field>
-          <FieldLabel htmlFor="name">Email</FieldLabel>
-          <Input
-            id="name"
-            type="name"
-            placeholder="enter username"
-            required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-        </Field>
+        {!showOtp && (
+          <>
+            <Field>
+              <FieldLabel htmlFor="name">Username</FieldLabel>
+              <Input
+                id="name"
+                type="text"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </Field>
 
-        <Field>
-          <FieldLabel htmlFor="email">Email</FieldLabel>
-          <Input
-            id="email"
-            type="email"
-            placeholder="m@example.com"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-        </Field>
+            <Field>
+              <FieldLabel htmlFor="email">Email</FieldLabel>
+              <Input
+                id="email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </Field>
 
-        <Field>
-          <FieldLabel htmlFor="password">Password</FieldLabel>
-          <Input
-            id="password"
-            type="password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </Field>
+            <Field>
+              <FieldLabel htmlFor="password">Password</FieldLabel>
+              <Input
+                id="password"
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </Field>
+          </>
+        )}
+
+        {showOtp && (
+          <Field>
+            <FieldLabel htmlFor="otp">Enter OTP</FieldLabel>
+            <Input
+              id="otp"
+              type="text"
+              required
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
+            />
+          </Field>
+        )}
 
         {error && (
           <p className="text-sm text-red-500 text-center">{error}</p>
@@ -101,15 +142,19 @@ export function RegisterForm({
 
         <Field>
           <Button type="submit" disabled={loading}>
-            {loading ? "signing in..." : "signup"}
+            {loading
+              ? "Please wait..."
+              : showOtp
+              ? "Verify OTP"
+              : "Register"}
           </Button>
         </Field>
 
         <Field>
           <FieldDescription className="text-center">
-            already have an account?{" "}
+            Already have an account?{" "}
             <a href="/login" className="underline underline-offset-4">
-              log in
+              Log in
             </a>
           </FieldDescription>
         </Field>
