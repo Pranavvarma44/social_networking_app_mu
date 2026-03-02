@@ -29,8 +29,8 @@ export function RegisterForm({
 
     try {
       const res = await axios.post(
-        `${import.meta.env.VITE_API_URL}/auth/login`,
-        { email, password }
+        `${import.meta.env.VITE_API_URL}/auth/register`,
+        { email,name, password }
       )
 
       // Save JWT
@@ -40,7 +40,7 @@ export function RegisterForm({
       window.location.href = "/dashboard"
 
     } catch (err: any) {
-      setError(err.response?.data?.error || "Login failed")
+      setError(err.response?.data?.error || "registeration failed")
     } finally {
       setLoading(false)
     }
@@ -101,15 +101,15 @@ export function RegisterForm({
 
         <Field>
           <Button type="submit" disabled={loading}>
-            {loading ? "Logging in..." : "Login"}
+            {loading ? "signing in..." : "signup"}
           </Button>
         </Field>
 
         <Field>
           <FieldDescription className="text-center">
-            Don&apos;t have an account?{" "}
-            <a href="/register" className="underline underline-offset-4">
-              Sign up
+            already have an account?{" "}
+            <a href="/login" className="underline underline-offset-4">
+              log in
             </a>
           </FieldDescription>
         </Field>
