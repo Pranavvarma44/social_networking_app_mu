@@ -27,7 +27,7 @@ export default function LoginPage() {
         <img
   src={image}
   alt="Image"
-  className="absolute inset-4 h-[calc(100%-2rem)] w-[calc(100%-2rem)] object-contain"
+  className="absolute top-6 right-6 w-64 md:w-80 object-contain"
 />
         </div>
       </div>
