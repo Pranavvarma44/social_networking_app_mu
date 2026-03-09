@@ -27,7 +27,7 @@ export default function LoginPage() {
         <img
   src={image}
   alt="Image"
-  className="absolute top-6 right-6 w-64 md:w-80 object-contain"
+  className="absolute top-10 right-10 h-40 w-40 rounded-full object-cover"
 />
         </div>
       </div>
