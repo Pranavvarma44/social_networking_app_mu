@@ -1,35 +1,30 @@
 import { GalleryVerticalEnd } from "lucide-react"
 import {RegisterForm} from "@/components/register-form"
 import image from "./image.svg?url"
-export default function RegisterPage() {
-    return (
-      <div className="grid min-h-svh grid-cols-2">
-        {/* LEFT */}
-        <div className="flex flex-col gap-4 p-6 md:p-10">
-          <div className="flex justify-start gap-2">
-            <a href="#" className="flex items-center gap-2 font-medium">
-              <div className="bg-primary text-primary-foreground flex size-6 items-center justify-center rounded-md">
-                <GalleryVerticalEnd className="size-4" />
-              </div>
-              MU SOCIAL.
-            </a>
-          </div>
-  
-          <div className="flex flex-1 items-center justify-center">
-            <div className="w-full max-w-xs">
-              <RegisterForm />
-            </div>
-          </div>
+export default function LoginPage() {
+  return (
+    <div className="relative min-h-screen flex items-center justify-center bg-black p-6">
+
+      {/* TOP LEFT LOGO */}
+      <div className="absolute top-6 left-6 flex items-center gap-2 font-medium text-white">
+        <div className="bg-primary text-primary-foreground flex h-7 w-7 items-center justify-center rounded-full">
+          <GalleryVerticalEnd className="h-3.5 w-3.5" />
         </div>
-  
-        {/* RIGHT */}
-        <div className="bg-muted relative">
-        <img
-  src={image}
-  alt="Image"
-  className="absolute inset-4 h-[calc(100%-2rem)] w-[calc(100%-2rem)] object-contain"
-/>
-        </div>
+        MU SOCIAL.
       </div>
-    )
-  }
+
+      {/* CENTER LOGIN FORM */}
+      <div className="w-full max-w-sm">
+        <RegisterForm />
+      </div>
+
+      {/* MAHINDRA LOGO TOP RIGHT */}
+      <img
+        src={image}
+        alt="Mahindra University"
+        className="absolute top-10 right-10 h-36 w-36 rounded-full object-cover shadow-lg"
+      />
+
+    </div>
+  )
+}
