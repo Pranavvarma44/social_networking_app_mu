@@ -8,9 +8,9 @@ export default function LoginPage() {
         <div className="flex flex-col gap-4 p-6 md:p-10">
           <div className="flex justify-start gap-2">
             <a href="#" className="flex items-center gap-2 font-medium">
-              <div className="bg-primary text-primary-foreground flex size-6 items-center justify-center rounded-md">
-                <GalleryVerticalEnd className="size-4" />
-              </div>
+            <div className="bg-primary text-primary-foreground flex h-8 w-8 items-center justify-center rounded-full">
+              <GalleryVerticalEnd className="h-4 w-4" />
+            </div>
               MU SOCIAL.
             </a>
           </div>
