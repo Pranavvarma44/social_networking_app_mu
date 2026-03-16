@@ -10,7 +10,8 @@ const router = express.Router();
 const generateOtp = () =>
   Math.floor(100000 + Math.random() * 900000).toString();
 
-// Helper: Check allowed domain
+/* ---------------- DOMAIN CHECK ---------------- */
+
 const isAllowedDomain = (email) => {
   const allowedDomains = process.env.ALLOWED_DOMAINS
     ? process.env.ALLOWED_DOMAINS.split(",")
@@ -21,9 +22,31 @@ const isAllowedDomain = (email) => {
   return allowedDomains.includes(domain);
 };
 
+/* ---------------- ROLE DETECTION ---------------- */
+
+const detectRole = (email) => {
+  const username = email.split("@")[0];
+
+  // Student pattern example: se23ucse154
+  const studentRegex = /^[a-z]{2}\d{2}[a-z]{4}\d{3}$/i;
+
+  if (studentRegex.test(username)) {
+    return "student";
+  }
+
+  // Faculty usually name.name
+  if (username.includes(".")) {
+    return "faculty";
+  }
+
+  return "student";
+};
+
+/* ---------------- REGISTER ---------------- */
+
 router.post("/register", async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ error: "All fields required" });
@@ -31,7 +54,7 @@ router.post("/register", async (req, res) => {
 
     const normalizedEmail = email.toLowerCase();
 
-    // 🔒 DOMAIN CHECK
+    // 🔒 Domain restriction
     if (!isAllowedDomain(normalizedEmail)) {
       return res.status(400).json({
         error: "Only official university email addresses are allowed",
@@ -44,6 +67,18 @@ router.post("/register", async (req, res) => {
       return res.status(409).json({ error: "Email already exists" });
     }
 
+    /* -------- Detect role from email -------- */
+
+    const detectedRole = detectRole(normalizedEmail);
+
+    /* -------- Prevent role spoofing -------- */
+
+    if (role && role !== detectedRole) {
+      return res.status(400).json({
+        error: `Email belongs to a ${detectedRole}. Please register as ${detectedRole}.`,
+      });
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
     await User.create({
@@ -51,8 +86,10 @@ router.post("/register", async (req, res) => {
       email: normalizedEmail,
       password: hashedPassword,
       emailVerified: false,
-      role: "student",
+      role: detectedRole,
     });
+
+    /* -------- OTP creation -------- */
 
     const otp = generateOtp();
     const otpHash = await bcrypt.hash(otp, 10);
@@ -69,12 +106,16 @@ router.post("/register", async (req, res) => {
 
     res.status(201).json({
       message: "User registered. OTP sent.",
+      role: detectedRole,
     });
+
   } catch (error) {
     console.error("Register error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
+/* ---------------- VERIFY OTP ---------------- */
 
 router.post("/verify-otp", async (req, res) => {
   try {
@@ -101,12 +142,17 @@ router.post("/verify-otp", async (req, res) => {
 
     await EmailOtp.deleteOne({ _id: otpRecord._id });
 
-    res.json({ message: "Email verified successfully" });
+    res.json({
+      message: "Email verified successfully",
+    });
+
   } catch (error) {
     console.error("Verify OTP error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
+/* ---------------- LOGIN ---------------- */
 
 router.post("/login", async (req, res) => {
   try {
@@ -114,7 +160,7 @@ router.post("/login", async (req, res) => {
 
     const normalizedEmail = email.toLowerCase();
 
-    // 🔒 DOMAIN CHECK (extra safety)
+    // 🔒 Domain restriction
     if (!isAllowedDomain(normalizedEmail)) {
       return res.status(403).json({
         error: "Access restricted to university members only",
@@ -149,7 +195,9 @@ router.post("/login", async (req, res) => {
     res.json({
       message: "Login successful",
       token,
+      role: user.role,
     });
+
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({ error: "Internal server error" });

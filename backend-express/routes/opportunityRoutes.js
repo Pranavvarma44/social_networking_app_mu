@@ -76,7 +76,7 @@ router.get("/", async (req, res) => {
 
 router.post("/", requireAuth, async (req, res) => {
   try {
-    if (!["alumni", "admin"].includes(req.user.role)) {
+    if (!["alumni", "admin","faculty"].includes(req.user.role)) {
       return res.status(403).json({
         error: "Only alumni or admin can post opportunities"
       });
