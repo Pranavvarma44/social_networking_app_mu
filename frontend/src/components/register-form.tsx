@@ -128,6 +128,7 @@ export function RegisterForm({
               >
                 <option value="student">Student</option>
                 <option value="faculty">Faculty</option>
+                <option value="alumini">Alumini</option>
               </select>
             </Field>
 
