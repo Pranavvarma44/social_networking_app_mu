@@ -5,9 +5,10 @@ import axios from "axios"
 const API = import.meta.env.VITE_API_URL
 const SOCKET_URL = API.replace("/api", "")
 
-// ⚠️ create socket OUTSIDE component (only once)
+// ✅ create socket once
 const socket = io(SOCKET_URL, {
   transports: ["websocket"],
+  autoConnect: false, // 🔥 important
 })
 
 export default function ChatPage() {
@@ -20,17 +21,21 @@ export default function ChatPage() {
   const user = token ? JSON.parse(atob(token.split(".")[1])) : null
   const myId = user?.userId
 
-  // 🔹 SOCKET SETUP
+  // 🔹 CONNECT SOCKET + JOIN (FIXED)
   useEffect(() => {
     if (!myId) return
 
-    socket.emit("join", myId)
+    socket.connect()
 
-    // receive message (from others)
+    socket.on("connect", () => {
+      console.log("CONNECTED:", myId)
+      socket.emit("join", myId) // ✅ now guaranteed after connect
+    })
+
     socket.on("receive_message", (msg) => {
       console.log("RECEIVED:", msg)
 
-      // only update if current chat is open
+      // only update if relevant chat
       if (
         msg.sender === selectedUser ||
         msg.receiver === selectedUser
@@ -39,17 +44,17 @@ export default function ChatPage() {
       }
     })
 
-    // message sent (self)
     socket.on("message_sent", (msg) => {
       console.log("SENT:", msg)
       setMessages((prev) => [...prev, msg])
     })
 
     return () => {
+      socket.off("connect")
       socket.off("receive_message")
       socket.off("message_sent")
     }
-  }, [selectedUser, myId])
+  }, [myId, selectedUser])
 
   // 🔹 Fetch conversations
   useEffect(() => {
