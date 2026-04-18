@@ -8,13 +8,15 @@ export const initSocket = (io) => {
 
     // JOIN
     socket.on("join", (userId) => {
-      onlineUsers.set(userId, socket.id);
-      console.log("User joined:", userId);
+        socket.userId = userId;
+        onlineUsers.set(userId, socket.id);
+        console.log("User joined:", userId);
     });
 
     // SEND MESSAGE
     socket.on("send_message", async (data) => {
-      const { sender, receiver, content } = data;
+      const { receiver, content } = data;
+      const sender = socket.userId;
 
       try {
         // Save message
