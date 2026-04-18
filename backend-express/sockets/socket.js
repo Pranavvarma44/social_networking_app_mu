@@ -9,9 +9,9 @@ export const initSocket = (io) => {
     // JOIN
     socket.on("join", (userId) => {
         socket.userId = userId;
+        console.log("JOIN:", userId);
         onlineUsers.set(userId, socket.id);
-        console.log("User joined:", userId);
-        console.log("ONLINE USERS:", onlineUsers)
+        console.log("ONLINE USERS:", [...onlineUsers.entries()]);
     });
 
     // SEND MESSAGE
