@@ -11,12 +11,14 @@ export const initSocket = (io) => {
         socket.userId = userId;
         onlineUsers.set(userId, socket.id);
         console.log("User joined:", userId);
+        console.log("ONLINE USERS:", onlineUsers)
     });
 
     // SEND MESSAGE
     socket.on("send_message", async (data) => {
       const { receiver, content } = data;
       const sender = socket.userId;
+      
 
       try {
         // Save message
@@ -27,7 +29,9 @@ export const initSocket = (io) => {
         });
 
         // Send to receiver
+        console.log("SENDING TO:", receiver)
         const receiverSocket = onlineUsers.get(receiver);
+        console.log("FOUND SOCKET:", receiverSocket)
 
         if (receiverSocket) {
           io.to(receiverSocket).emit("receive_message", message);
