@@ -21,7 +21,7 @@ export function RegisterForm({
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [role, setRole] = useState("student")
-  const [name, setName] = useState("")
+  const [name, setName] = useState("")            
   const [otp, setOtp] = useState("")
   const [showOtp, setShowOtp] = useState(false)
 
