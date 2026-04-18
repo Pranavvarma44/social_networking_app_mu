@@ -5,10 +5,10 @@ import axios from "axios"
 const API = import.meta.env.VITE_API_URL
 const SOCKET_URL = API.replace("/api", "")
 
-// ✅ create socket once
+// create socket once
 const socket = io(SOCKET_URL, {
   transports: ["websocket"],
-  autoConnect: false, // 🔥 important
+  autoConnect: false,
 })
 
 export default function ChatPage() {
@@ -18,24 +18,44 @@ export default function ChatPage() {
   const [text, setText] = useState("")
 
   const token = localStorage.getItem("token")
-  const user = token ? JSON.parse(atob(token.split(".")[1])) : null
-  const myId = user?.userId
 
-  // 🔹 CONNECT SOCKET + JOIN (FIXED)
+  // ✅ SAFE TOKEN DECODE
+  let myId: string | null = null
+
+  if (token) {
+    try {
+      const parts = token.split(".")
+      if (parts.length === 3) {
+        const payload = JSON.parse(atob(parts[1]))
+        myId = payload.userId
+      }
+    } catch (err) {
+      console.error("Invalid token:", err)
+      localStorage.removeItem("token")
+    }
+  }
+
+  // ✅ PREVENT CRASH / BLACK SCREEN
+  if (!myId) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <p>Please login again</p>
+      </div>
+    )
+  }
+
+  // 🔹 SOCKET SETUP (FIXED)
   useEffect(() => {
-    if (!myId) return
-
     socket.connect()
 
     socket.on("connect", () => {
       console.log("CONNECTED:", myId)
-      socket.emit("join", myId) // ✅ now guaranteed after connect
+      socket.emit("join", myId)
     })
 
     socket.on("receive_message", (msg) => {
       console.log("RECEIVED:", msg)
 
-      // only update if relevant chat
       if (
         msg.sender === selectedUser ||
         msg.receiver === selectedUser
@@ -58,8 +78,6 @@ export default function ChatPage() {
 
   // 🔹 Fetch conversations
   useEffect(() => {
-    if (!token) return
-
     axios.get(`${API}/messages/conversations`, {
       headers: { Authorization: `Bearer ${token}` }
     }).then(res => setConversations(res.data.conversations))
@@ -94,6 +112,10 @@ export default function ChatPage() {
       {/* LEFT: Conversations */}
       <div className="w-1/3 border-r p-4">
         <h2 className="font-bold mb-4">Chats</h2>
+
+        {conversations.length === 0 && (
+          <p className="text-gray-500">No chats yet</p>
+        )}
 
         {conversations.map((c, i) => (
           <div
