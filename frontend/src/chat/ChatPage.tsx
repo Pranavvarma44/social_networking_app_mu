@@ -3,38 +3,64 @@ import { io } from "socket.io-client"
 import axios from "axios"
 
 const API = import.meta.env.VITE_API_URL
-const socket = io(import.meta.env.VITE_API_URL.replace("/api", ""))
+const SOCKET_URL = API.replace("/api", "")
+
+// ⚠️ create socket OUTSIDE component (only once)
+const socket = io(SOCKET_URL, {
+  transports: ["websocket"],
+})
 
 export default function ChatPage() {
   const [conversations, setConversations] = useState<any[]>([])
   const [messages, setMessages] = useState<any[]>([])
-  const [selectedUser, setSelectedUser] = useState<any>(null)
+  const [selectedUser, setSelectedUser] = useState<string | null>(null)
   const [text, setText] = useState("")
 
   const token = localStorage.getItem("token")
+  const user = token ? JSON.parse(atob(token.split(".")[1])) : null
+  const myId = user?.userId
 
-  // 🔹 Join socket
+  // 🔹 SOCKET SETUP
   useEffect(() => {
-    const user = JSON.parse(atob(token!.split(".")[1]))
-    socket.emit("join", user.userId)
+    if (!myId) return
 
+    socket.emit("join", myId)
+
+    // receive message (from others)
     socket.on("receive_message", (msg) => {
+      console.log("RECEIVED:", msg)
+
+      // only update if current chat is open
+      if (
+        msg.sender === selectedUser ||
+        msg.receiver === selectedUser
+      ) {
+        setMessages((prev) => [...prev, msg])
+      }
+    })
+
+    // message sent (self)
+    socket.on("message_sent", (msg) => {
+      console.log("SENT:", msg)
       setMessages((prev) => [...prev, msg])
     })
 
     return () => {
       socket.off("receive_message")
+      socket.off("message_sent")
     }
-  }, [])
+  }, [selectedUser, myId])
 
   // 🔹 Fetch conversations
   useEffect(() => {
+    if (!token) return
+
     axios.get(`${API}/messages/conversations`, {
       headers: { Authorization: `Bearer ${token}` }
     }).then(res => setConversations(res.data.conversations))
   }, [])
 
-  // 🔹 Fetch messages
+  // 🔹 Open chat
   const openChat = async (userId: string) => {
     setSelectedUser(userId)
 
@@ -47,10 +73,13 @@ export default function ChatPage() {
 
   // 🔹 Send message
   const sendMessage = () => {
+    if (!text || !selectedUser) return
+
     socket.emit("send_message", {
       receiver: selectedUser,
       content: text
     })
+
     setText("")
   }
 
@@ -64,7 +93,9 @@ export default function ChatPage() {
         {conversations.map((c, i) => (
           <div
             key={i}
-            className="p-2 cursor-pointer hover:bg-gray-100"
+            className={`p-2 cursor-pointer hover:bg-gray-100 ${
+              selectedUser === c.userId ? "bg-gray-200" : ""
+            }`}
             onClick={() => openChat(c.userId)}
           >
             <p className="font-semibold">{c.name}</p>
@@ -77,11 +108,28 @@ export default function ChatPage() {
       <div className="flex-1 p-4 flex flex-col">
 
         <div className="flex-1 overflow-y-auto">
-          {messages.map((m, i) => (
-            <div key={i} className="mb-2">
-              <p className="text-sm">{m.content}</p>
-            </div>
-          ))}
+          {messages.map((m, i) => {
+            const isMe = m.sender === myId
+
+            return (
+              <div
+                key={i}
+                className={`mb-2 flex ${
+                  isMe ? "justify-end" : "justify-start"
+                }`}
+              >
+                <p
+                  className={`px-3 py-2 rounded ${
+                    isMe
+                      ? "bg-black text-white"
+                      : "bg-gray-200 text-black"
+                  }`}
+                >
+                  {m.content}
+                </p>
+              </div>
+            )
+          })}
         </div>
 
         {selectedUser && (
