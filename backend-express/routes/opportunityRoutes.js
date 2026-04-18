@@ -20,17 +20,17 @@ router.get("/", async (req, res) => {
   
       const query = {};
   
-      // 🔎 Search by title (case insensitive)
+     
       if (search) {
         query.title = { $regex: search, $options: "i" };
       }
   
-      // 📍 Location filter
+      
       if (location) {
         query.location = { $regex: location, $options: "i" };
       }
   
-      // 🏢 Company filter
+      
       if (company) {
         query.company = { $regex: company, $options: "i" };
       }
