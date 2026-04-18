@@ -6,38 +6,49 @@ export const initSocket = (io) => {
   io.on("connection", (socket) => {
     console.log("User connected:", socket.id);
 
-    // JOIN
+    // 🔹 JOIN
     socket.on("join", (userId) => {
-        socket.userId = userId;
-        console.log("JOIN:", userId);
-        onlineUsers.set(userId, socket.id);
-        console.log("ONLINE USERS:", [...onlineUsers.entries()]);
+      if (!userId) return;
+
+      const id = userId.toString(); // ✅ ensure string
+
+      onlineUsers.set(id, socket.id);
+      socket.userId = id;
+
+      console.log("JOIN:", id);
+      console.log("ONLINE USERS:", [...onlineUsers.entries()]);
     });
 
-    // SEND MESSAGE
+    // 🔹 SEND MESSAGE
     socket.on("send_message", async (data) => {
-      const { receiver, content } = data;
-      const sender = socket.userId;
-      
-
       try {
-        // Save message
+        const { receiver, content } = data;
+
+        const sender = socket.userId; // ✅ secure sender
+        if (!sender) return;
+
+        // save message
         const message = await Message.create({
           sender,
           receiver,
           content,
         });
 
-        // Send to receiver
-        console.log("SENDING TO:", receiver)
-        const receiverSocket = onlineUsers.get(receiver);
-        console.log("FOUND SOCKET:", receiverSocket)
+        const receiverId = receiver.toString();
+        const receiverSocket = onlineUsers.get(receiverId);
 
+        console.log("SENDING FROM:", sender);
+        console.log("TO:", receiverId);
+        console.log("FOUND SOCKET:", receiverSocket);
+
+        // send to receiver
         if (receiverSocket) {
           io.to(receiverSocket).emit("receive_message", message);
+        } else {
+          console.log("User offline → message stored only");
         }
 
-        // Send back to sender
+        // send back to sender
         socket.emit("message_sent", message);
 
       } catch (err) {
@@ -45,16 +56,19 @@ export const initSocket = (io) => {
       }
     });
 
-    // DISCONNECT
+    // 🔹 DISCONNECT
     socket.on("disconnect", () => {
-      console.log("User disconnected");
+      console.log("User disconnected:", socket.id);
 
       for (let [userId, sockId] of onlineUsers.entries()) {
         if (sockId === socket.id) {
           onlineUsers.delete(userId);
+          console.log("REMOVED:", userId);
           break;
         }
       }
+
+      console.log("ONLINE USERS:", [...onlineUsers.entries()]);
     });
   });
 };

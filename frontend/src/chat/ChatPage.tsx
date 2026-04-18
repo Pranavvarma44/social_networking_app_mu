@@ -15,7 +15,6 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<any[]>([])
   const [selectedUser, setSelectedUser] = useState<string | null>(null)
   const [text, setText] = useState("")
-
   const [showUsers, setShowUsers] = useState(false)
   const [users, setUsers] = useState<any[]>([])
 
@@ -43,33 +42,60 @@ export default function ChatPage() {
     )
   }
 
-  // 🔹 SOCKET
+  // ✅ SOCKET CONNECT + JOIN (RUNS ONCE)
   useEffect(() => {
     socket.connect()
 
-    socket.on("connect", () => {
+    const handleConnect = () => {
+      console.log("CONNECTED:", myId)
       socket.emit("join", myId)
-    })
+    }
 
-    socket.on("receive_message", (msg) => {
-      if (
-        msg.sender === selectedUser ||
-        msg.receiver === selectedUser
-      ) {
-        setMessages((prev) => [...prev, msg])
-      }
-    })
-
-    socket.on("message_sent", (msg) => {
-      setMessages((prev) => [...prev, msg])
-    })
+    socket.on("connect", handleConnect)
 
     return () => {
-      socket.off("connect")
-      socket.off("receive_message")
-      socket.off("message_sent")
+      socket.off("connect", handleConnect)
     }
-  }, [myId, selectedUser])
+  }, [myId])
+
+  // ✅ MESSAGE LISTENERS (SEPARATE)
+  useEffect(() => {
+    const handleReceive = (msg: any) => {
+      console.log("RECEIVED:", msg)
+
+      setMessages((prev) => {
+        // prevent duplicates
+        if (prev.some((m) => m._id === msg._id)) return prev
+
+        // only update if chat open
+        if (
+          msg.sender === selectedUser ||
+          msg.receiver === selectedUser
+        ) {
+          return [...prev, msg]
+        }
+
+        return prev
+      })
+    }
+
+    const handleSent = (msg: any) => {
+      console.log("SENT:", msg)
+
+      setMessages((prev) => {
+        if (prev.some((m) => m._id === msg._id)) return prev
+        return [...prev, msg]
+      })
+    }
+
+    socket.on("receive_message", handleReceive)
+    socket.on("message_sent", handleSent)
+
+    return () => {
+      socket.off("receive_message", handleReceive)
+      socket.off("message_sent", handleSent)
+    }
+  }, [selectedUser])
 
   // 🔹 conversations
   useEffect(() => {
@@ -78,14 +104,13 @@ export default function ChatPage() {
     }).then(res => setConversations(res.data.conversations))
   }, [])
 
-  // 🔹 fetch all users (for new chat)
+  // 🔹 fetch users for new chat
   useEffect(() => {
     if (!showUsers) return
 
     axios.get(`${API}/users`, {
       headers: { Authorization: `Bearer ${token}` }
     }).then(res => {
-      // remove self
       const filtered = res.data.users.filter((u: any) => u._id !== myId)
       setUsers(filtered)
     })
@@ -121,7 +146,6 @@ export default function ChatPage() {
       <div className="w-1/3 border-r p-4">
         <h2 className="font-bold mb-4">Chats</h2>
 
-        {/* NEW CHAT BUTTON */}
         <button
           onClick={() => setShowUsers(!showUsers)}
           className="mb-3 bg-black text-white px-3 py-1 rounded"
@@ -129,7 +153,7 @@ export default function ChatPage() {
           {showUsers ? "Close" : "New Chat"}
         </button>
 
-        {/* USER LIST */}
+        {/* NEW CHAT USER LIST */}
         {showUsers && (
           <div className="border p-2 mb-3 max-h-40 overflow-y-auto">
             <p className="font-semibold mb-2">Select user</p>
