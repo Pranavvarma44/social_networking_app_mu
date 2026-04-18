@@ -5,7 +5,6 @@ import axios from "axios"
 const API = import.meta.env.VITE_API_URL
 const SOCKET_URL = API.replace("/api", "")
 
-// create socket once
 const socket = io(SOCKET_URL, {
   transports: ["websocket"],
   autoConnect: false,
@@ -17,11 +16,13 @@ export default function ChatPage() {
   const [selectedUser, setSelectedUser] = useState<string | null>(null)
   const [text, setText] = useState("")
 
+  const [showUsers, setShowUsers] = useState(false)
+  const [users, setUsers] = useState<any[]>([])
+
   const token = localStorage.getItem("token")
 
-  // ✅ SAFE TOKEN DECODE
+  // ✅ SAFE TOKEN
   let myId: string | null = null
-
   if (token) {
     try {
       const parts = token.split(".")
@@ -29,13 +30,11 @@ export default function ChatPage() {
         const payload = JSON.parse(atob(parts[1]))
         myId = payload.userId
       }
-    } catch (err) {
-      console.error("Invalid token:", err)
+    } catch {
       localStorage.removeItem("token")
     }
   }
 
-  // ✅ PREVENT CRASH / BLACK SCREEN
   if (!myId) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -44,18 +43,15 @@ export default function ChatPage() {
     )
   }
 
-  // 🔹 SOCKET SETUP (FIXED)
+  // 🔹 SOCKET
   useEffect(() => {
     socket.connect()
 
     socket.on("connect", () => {
-      console.log("CONNECTED:", myId)
       socket.emit("join", myId)
     })
 
     socket.on("receive_message", (msg) => {
-      console.log("RECEIVED:", msg)
-
       if (
         msg.sender === selectedUser ||
         msg.receiver === selectedUser
@@ -65,7 +61,6 @@ export default function ChatPage() {
     })
 
     socket.on("message_sent", (msg) => {
-      console.log("SENT:", msg)
       setMessages((prev) => [...prev, msg])
     })
 
@@ -76,14 +71,27 @@ export default function ChatPage() {
     }
   }, [myId, selectedUser])
 
-  // 🔹 Fetch conversations
+  // 🔹 conversations
   useEffect(() => {
     axios.get(`${API}/messages/conversations`, {
       headers: { Authorization: `Bearer ${token}` }
     }).then(res => setConversations(res.data.conversations))
   }, [])
 
-  // 🔹 Open chat
+  // 🔹 fetch all users (for new chat)
+  useEffect(() => {
+    if (!showUsers) return
+
+    axios.get(`${API}/users`, {
+      headers: { Authorization: `Bearer ${token}` }
+    }).then(res => {
+      // remove self
+      const filtered = res.data.users.filter((u: any) => u._id !== myId)
+      setUsers(filtered)
+    })
+  }, [showUsers])
+
+  // 🔹 open chat
   const openChat = async (userId: string) => {
     setSelectedUser(userId)
 
@@ -94,7 +102,7 @@ export default function ChatPage() {
     setMessages(res.data.messages)
   }
 
-  // 🔹 Send message
+  // 🔹 send message
   const sendMessage = () => {
     if (!text || !selectedUser) return
 
@@ -109,10 +117,40 @@ export default function ChatPage() {
   return (
     <div className="flex h-screen">
 
-      {/* LEFT: Conversations */}
+      {/* LEFT */}
       <div className="w-1/3 border-r p-4">
         <h2 className="font-bold mb-4">Chats</h2>
 
+        {/* NEW CHAT BUTTON */}
+        <button
+          onClick={() => setShowUsers(!showUsers)}
+          className="mb-3 bg-black text-white px-3 py-1 rounded"
+        >
+          {showUsers ? "Close" : "New Chat"}
+        </button>
+
+        {/* USER LIST */}
+        {showUsers && (
+          <div className="border p-2 mb-3 max-h-40 overflow-y-auto">
+            <p className="font-semibold mb-2">Select user</p>
+
+            {users.map((u) => (
+              <div
+                key={u._id}
+                className="p-2 hover:bg-gray-100 cursor-pointer"
+                onClick={() => {
+                  setSelectedUser(u._id)
+                  setMessages([])
+                  setShowUsers(false)
+                }}
+              >
+                {u.name}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* EXISTING CHATS */}
         {conversations.length === 0 && (
           <p className="text-gray-500">No chats yet</p>
         )}
@@ -131,7 +169,7 @@ export default function ChatPage() {
         ))}
       </div>
 
-      {/* RIGHT: Chat */}
+      {/* RIGHT */}
       <div className="flex-1 p-4 flex flex-col">
 
         <div className="flex-1 overflow-y-auto">
