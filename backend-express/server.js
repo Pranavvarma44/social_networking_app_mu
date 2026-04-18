@@ -16,7 +16,10 @@ dotenv.config();
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+  origin: "https://social-networking-app-mu.vercel.app",
+  credentials: true
+}));
 app.use(express.json());
 
 // Routes
@@ -45,7 +48,9 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: "https://social-networking-app-mu.vercel.app",
+    methods: ["GET", "POST"],
+    credentials: true
   },
 });
 
