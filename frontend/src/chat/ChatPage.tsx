@@ -206,24 +206,25 @@ export default function Chat() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-gray-100">
+    <div className="h-screen flex flex-col bg-black text-white">
       <Navbar />
-
+  
       <div className="flex flex-1 overflow-hidden">
-
+  
         {/* SIDEBAR */}
-        <div className="w-1/4 bg-white border-r p-4">
-          <h2 className="text-xl font-semibold mb-4">Chats</h2>
-
-          <p className="text-xs text-gray-400 mb-2">Users</p>
-
+        <div className="w-1/4 bg-[#0f0f0f] border-r border-gray-800 p-4">
+          <h2 className="text-xl font-semibold mb-4 text-white">Chats</h2>
+  
+          <p className="text-xs text-gray-500 mb-2">Users</p>
+  
           {users.length === 0 && (
-            <p className="text-gray-400 text-sm">No users found</p>
+            <p className="text-gray-600 text-sm">No users found</p>
           )}
-
+  
           {users.map((user) => {
             const isOnline = onlineUsers.includes(user._id);
-
+            const isActive = selectedUser?._id === user._id;
+  
             return (
               <div
                 key={user._id}
@@ -231,18 +232,22 @@ export default function Chat() {
                   setSelectedUser(user);
                   setSelectedGroup(null);
                 }}
-                className="flex justify-between p-2 cursor-pointer hover:bg-gray-100"
+                className={`flex justify-between px-3 py-2 rounded-lg cursor-pointer mb-1 transition ${
+                  isActive
+                    ? "bg-white text-black"
+                    : "hover:bg-gray-800"
+                }`}
               >
                 {user.name}
-                <span className={isOnline ? "text-green-500" : "text-gray-400"}>
+                <span className={isOnline ? "text-green-400" : "text-gray-600"}>
                   ●
                 </span>
               </div>
             );
           })}
-
-          <p className="text-xs text-gray-400 mt-4 mb-2">Groups</p>
-
+  
+          <p className="text-xs text-gray-500 mt-6 mb-2">Groups</p>
+  
           {groups.map((group) => (
             <div
               key={group._id}
@@ -250,30 +255,45 @@ export default function Chat() {
                 setSelectedGroup(group);
                 setSelectedUser(null);
               }}
-              className="p-2 cursor-pointer hover:bg-gray-100"
+              className="px-3 py-2 rounded-lg cursor-pointer hover:bg-gray-800 mb-1"
             >
               {group.name}
             </div>
           ))}
         </div>
-
+  
         {/* CHAT AREA */}
-        <div className="flex flex-col flex-1">
-
-          <div className="bg-white border-b p-4">
-            {selectedUser?.name || selectedGroup?.name || "Select chat"}
+        <div className="flex flex-col flex-1 bg-black">
+  
+          {/* HEADER */}
+          <div className="border-b border-gray-800 px-6 py-4 bg-[#111]">
+            <h2 className="font-semibold text-white">
+              {selectedUser?.name || selectedGroup?.name || "Select chat"}
+            </h2>
             {typingUserId && (
-              <span className="text-gray-400 ml-2">Typing...</span>
+              <span className="text-gray-500 text-sm">Typing...</span>
             )}
           </div>
-
-          <div className="flex-1 overflow-y-auto p-4 space-y-2">
+  
+          {/* MESSAGES */}
+          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
             {messages.map((m) => {
               const isMe = m.sender?._id === currentUserId;
-
+  
               return (
-                <div key={m._id} className={`flex ${isMe ? "justify-end" : ""}`}>
-                  <div className={`p-2 rounded ${isMe ? "bg-blue-500 text-white" : "bg-white"}`}>
+                <div
+                  key={m._id}
+                  className={`flex ${
+                    isMe ? "justify-end" : "justify-start"
+                  }`}
+                >
+                  <div
+                    className={`px-4 py-2 rounded-xl max-w-xs ${
+                      isMe
+                        ? "bg-white text-black"
+                        : "bg-gray-800 text-white"
+                    }`}
+                  >
                     {m.text}
                   </div>
                 </div>
@@ -281,17 +301,19 @@ export default function Chat() {
             })}
             <div ref={bottomRef} />
           </div>
-
+  
+          {/* INPUT */}
           {(selectedUser || selectedGroup) && (
-            <div className="p-4 flex gap-2 bg-white">
+            <div className="p-4 bg-[#111] border-t border-gray-800 flex gap-2">
               <input
                 value={text}
                 onChange={handleTyping}
-                className="flex-1 border p-2 rounded"
+                placeholder="Type a message..."
+                className="flex-1 bg-black border border-gray-700 rounded-full px-4 py-2 text-white focus:outline-none focus:border-white"
               />
               <button
                 onClick={sendMessage}
-                className="bg-blue-500 text-white px-4 rounded"
+                className="bg-white text-black px-5 py-2 rounded-full font-medium hover:bg-gray-200 transition"
               >
                 Send
               </button>
