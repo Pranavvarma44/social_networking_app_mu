@@ -53,7 +53,7 @@ export default function Chat() {
     if (!token) return;
 
     axios
-      .get(`${BASE_URL}/api/groups`, {
+      .get(`${BASE_URL}/groups`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
@@ -151,7 +151,7 @@ export default function Chat() {
     socketRef.current?.emit("join_room", room);
 
     axios
-      .get(`${BASE_URL}/api/messages/${room}`, {
+      .get(`${BASE_URL}/messages/${room}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
