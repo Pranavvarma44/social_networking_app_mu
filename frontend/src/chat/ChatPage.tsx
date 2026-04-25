@@ -197,7 +197,6 @@ export default function Chat() {
 
   return (
     <div className="h-screen flex flex-col bg-[#0b0b0b] text-white">
-      <Navbar />
   
       <div className="flex flex-1 overflow-hidden">
   
