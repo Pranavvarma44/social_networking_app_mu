@@ -6,6 +6,7 @@ import http from "http";
 import { Server } from "socket.io";
 
 import User from "./models/User.js";
+import Message from "./models/Message.js";
 import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import opportunityRoutes from "./routes/opportunityRoutes.js";
@@ -71,6 +72,7 @@ io.use((socket, next) => {
 });
 
 // 🔁 Socket connection
+// 🔁 Socket connection
 const onlineUsers = new Map();
 
 io.on("connection", (socket) => {
@@ -79,8 +81,10 @@ io.on("connection", (socket) => {
   socket.currentRoom = null;
 
   if (userId) {
-    onlineUsers.set(userId, socket.id);
+    onlineUsers.set(userId.toString(), socket.id);
   }
+
+  console.log("ONLINE USERS:", [...onlineUsers.entries()]);
 
   io.emit("online_users", Array.from(onlineUsers.keys()));
 
@@ -90,25 +94,33 @@ io.on("connection", (socket) => {
   socket.on("join_room", (room) => {
     socket.join(room);
     socket.currentRoom = room;
+
+    console.log("JOIN ROOM:", room);
   });
 
   // =========================
-  // SEND MESSAGE
+  // SEND MESSAGE (FIXED)
   // =========================
   socket.on("send_message", async ({ room, text }) => {
-    const sender = socket.user.userId;
+    try {
+      const sender = socket.user.userId;
 
-    const message = await Message.create({
-      room,
-      sender,
-      text,
-      status: "sent",
-      seenBy: [sender],
-    });
+      console.log("📤 SEND MESSAGE:", { room, text, sender });
 
-    const populated = await message.populate("sender", "username");
+      const message = await Message.create({
+        room,
+        text,
+        sender, // ✅ FIXED
+        status: "sent",
+        seenBy: [sender],
+      });
 
-    io.to(room).emit("receive_message", populated);
+      const populated = await message.populate("sender", "name"); // ✅ FIXED
+
+      io.to(room).emit("receive_message", populated);
+    } catch (err) {
+      console.error("❌ SEND ERROR:", err);
+    }
   });
 
   // =========================
@@ -126,7 +138,7 @@ io.on("connection", (socket) => {
   });
 
   // =========================
-  // 👁️ SEEN (STRICT LOGIC)
+  // 👁️ SEEN
   // =========================
   socket.on("message_seen", async ({ messageId }) => {
     const msg = await Message.findById(messageId);
@@ -134,16 +146,10 @@ io.on("connection", (socket) => {
 
     const userId = socket.user.userId;
 
-    // ❌ user must be in that room
     if (socket.currentRoom !== msg.room) return;
+    if (!onlineUsers.has(userId.toString())) return;
+    if (msg.sender?.toString() === userId) return;
 
-    // ❌ user must be online
-    if (!onlineUsers.has(userId)) return;
-
-    // ❌ don't mark sender
-    if (msg.sender.toString() === userId) return;
-
-    // avoid duplicates
     if (!msg.seenBy.includes(userId)) {
       msg.seenBy.push(userId);
     }
@@ -173,7 +179,7 @@ io.on("connection", (socket) => {
   // =========================
   socket.on("disconnect", () => {
     if (userId) {
-      onlineUsers.delete(userId);
+      onlineUsers.delete(userId.toString());
     }
 
     io.emit("online_users", Array.from(onlineUsers.keys()));
