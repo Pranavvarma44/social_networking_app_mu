@@ -206,118 +206,132 @@ export default function Chat() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-black text-white">
+    <div className="h-screen flex flex-col bg-[#0b0b0b] text-white">
       <Navbar />
   
       <div className="flex flex-1 overflow-hidden">
   
         {/* SIDEBAR */}
-        <div className="w-1/4 bg-[#0f0f0f] border-r border-gray-800 p-4">
-          <h2 className="text-xl font-semibold mb-4 text-white">Chats</h2>
+        <div className="w-[300px] bg-[#111] border-r border-gray-800 flex flex-col">
   
-          <p className="text-xs text-gray-500 mb-2">Users</p>
-  
-          {users.length === 0 && (
-            <p className="text-gray-600 text-sm">No users found</p>
-          )}
-  
-          {users.map((user) => {
-            const isOnline = onlineUsers.includes(user._id);
-            const isActive = selectedUser?._id === user._id;
-  
-            return (
-              <div
-                key={user._id}
-                onClick={() => {
-                  setSelectedUser(user);
-                  setSelectedGroup(null);
-                }}
-                className={`flex justify-between px-3 py-2 rounded-lg cursor-pointer mb-1 transition ${
-                  isActive
-                    ? "bg-white text-black"
-                    : "hover:bg-gray-800"
-                }`}
-              >
-                {user.name}
-                <span className={isOnline ? "text-green-400" : "text-gray-600"}>
-                  ●
-                </span>
-              </div>
-            );
-          })}
-  
-          <p className="text-xs text-gray-500 mt-6 mb-2">Groups</p>
-  
-          {groups.map((group) => (
-            <div
-              key={group._id}
-              onClick={() => {
-                setSelectedGroup(group);
-                setSelectedUser(null);
-              }}
-              className="px-3 py-2 rounded-lg cursor-pointer hover:bg-gray-800 mb-1"
-            >
-              {group.name}
-            </div>
-          ))}
-        </div>
-  
-        {/* CHAT AREA */}
-        <div className="flex flex-col flex-1 bg-black">
-  
-          {/* HEADER */}
-          <div className="border-b border-gray-800 px-6 py-4 bg-[#111]">
-            <h2 className="font-semibold text-white">
-              {selectedUser?.name || selectedGroup?.name || "Select chat"}
-            </h2>
-            {typingUserId && (
-              <span className="text-gray-500 text-sm">Typing...</span>
-            )}
+          <div className="p-4 border-b border-gray-800">
+            <h2 className="text-lg font-semibold">Chats</h2>
           </div>
   
-          {/* MESSAGES */}
-          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
-            {messages.map((m) => {
-              const isMe = m.sender?._id === currentUserId;
+          <div className="flex-1 overflow-y-auto p-3 space-y-2">
+  
+            {users.length === 0 && (
+              <p className="text-gray-500 text-sm">No users found</p>
+            )}
+  
+            {users.map((user) => {
+              const isOnline = onlineUsers.includes(user._id);
+              const isActive = selectedUser?._id === user._id;
   
               return (
                 <div
-                  key={m._id}
-                  className={`flex ${
-                    isMe ? "justify-end" : "justify-start"
+                  key={user._id}
+                  onClick={() => {
+                    setSelectedUser(user);
+                    setSelectedGroup(null);
+                  }}
+                  className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition ${
+                    isActive
+                      ? "bg-white text-black"
+                      : "hover:bg-gray-800"
                   }`}
                 >
-                  <div
-                    className={`px-4 py-2 rounded-xl max-w-xs ${
-                      isMe
-                        ? "bg-white text-black"
-                        : "bg-gray-800 text-white"
-                    }`}
-                  >
-                    {m.text}
+                  {/* Avatar */}
+                  <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-sm">
+                    {user.name[0]}
                   </div>
+  
+                  {/* Name */}
+                  <div className="flex-1">
+                    <p className="font-medium">{user.name}</p>
+                  </div>
+  
+                  {/* Online dot */}
+                  <div
+                    className={`w-2 h-2 rounded-full ${
+                      isOnline ? "bg-green-400" : "bg-gray-600"
+                    }`}
+                  />
                 </div>
               );
             })}
-            <div ref={bottomRef} />
+          </div>
+        </div>
+  
+        {/* CHAT AREA */}
+        <div className="flex flex-col flex-1 bg-[#0b0b0b]">
+  
+          {/* HEADER */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800 bg-[#111]">
+            <div>
+              <p className="font-semibold text-lg">
+                {selectedUser?.name || "Select chat"}
+              </p>
+              {typingUserId && (
+                <p className="text-sm text-gray-500">Typing...</p>
+              )}
+            </div>
           </div>
   
-          {/* INPUT */}
-          {(selectedUser || selectedGroup) && (
-            <div className="p-4 bg-[#111] border-t border-gray-800 flex gap-2">
-              <input
-                value={text}
-                onChange={handleTyping}
-                placeholder="Type a message..."
-                className="flex-1 bg-black border border-gray-700 rounded-full px-4 py-2 text-white focus:outline-none focus:border-white"
-              />
-              <button
-                onClick={sendMessage}
-                className="bg-white text-black px-5 py-2 rounded-full font-medium hover:bg-gray-200 transition"
-              >
-                Send
-              </button>
+          {/* EMPTY STATE */}
+          {!selectedUser && (
+            <div className="flex-1 flex items-center justify-center text-gray-600">
+              Select a chat to start messaging
             </div>
+          )}
+  
+          {/* MESSAGES */}
+          {selectedUser && (
+            <>
+              <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4">
+  
+                {messages.map((m) => {
+                  const isMe = m.sender?._id === currentUserId;
+  
+                  return (
+                    <div
+                      key={m._id}
+                      className={`flex ${
+                        isMe ? "justify-end" : "justify-start"
+                      }`}
+                    >
+                      <div
+                        className={`max-w-sm px-4 py-3 rounded-2xl text-sm ${
+                          isMe
+                            ? "bg-white text-black"
+                            : "bg-gray-800 text-white"
+                        }`}
+                      >
+                        {m.text}
+                      </div>
+                    </div>
+                  );
+                })}
+  
+                <div ref={bottomRef} />
+              </div>
+  
+              {/* INPUT */}
+              <div className="p-4 border-t border-gray-800 bg-[#111] flex gap-3">
+                <input
+                  value={text}
+                  onChange={handleTyping}
+                  placeholder="Type a message..."
+                  className="flex-1 bg-[#0b0b0b] border border-gray-700 rounded-full px-4 py-2 text-sm focus:outline-none focus:border-white"
+                />
+                <button
+                  onClick={sendMessage}
+                  className="bg-white text-black px-5 py-2 rounded-full text-sm font-medium hover:bg-gray-200 transition"
+                >
+                  Send
+                </button>
+              </div>
+            </>
           )}
         </div>
       </div>
