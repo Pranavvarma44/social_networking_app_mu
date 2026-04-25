@@ -1,13 +1,20 @@
-import Post from "../models/postModel";
+import Post from "../models/postModel.js";
 
+// CREATE POST
 export const createPost = async (req, res, next) => {
   try {
-    const { content, image } = req.body;
+    const { content, images, image } = req.body;
+
+    const finalImages = images || (image ? [image] : []);
+
+    if (!content && finalImages.length === 0) {
+      return res.status(400).json({ message: "Post cannot be empty" });
+    }
 
     const post = await Post.create({
-      author: req.user.id,
+      author: req.user.userId, // ✅ FIXED
       content,
-      image,
+      images: finalImages,     // ✅ FIXED
     });
 
     res.status(201).json(post);
@@ -16,7 +23,7 @@ export const createPost = async (req, res, next) => {
   }
 };
 
-// Get all posts (basic feed)
+// GET POSTS
 export const getPosts = async (req, res, next) => {
   try {
     const posts = await Post.find()
@@ -29,7 +36,7 @@ export const getPosts = async (req, res, next) => {
   }
 };
 
-// Delete post
+// DELETE POST
 export const deletePost = async (req, res, next) => {
   try {
     const post = await Post.findById(req.params.postId);
@@ -38,7 +45,7 @@ export const deletePost = async (req, res, next) => {
       return res.status(404).json({ message: "Post not found" });
     }
 
-    if (post.author.toString() !== req.user.id) {
+    if (post.author.toString() !== req.user.userId) { // ✅ FIXED
       return res.status(403).json({ message: "Unauthorized" });
     }
 
