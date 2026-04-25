@@ -66,16 +66,7 @@ export default function Chat() {
   // =========================
   // FETCH GROUPS
   // =========================
-  useEffect(() => {
-    if (!token) return;
-
-    axios
-      .get(`${BASE_URL}/groups`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((res) => setGroups(res.data))
-      .catch(console.error);
-  }, [token]);
+  
 
   // =========================
   // SOCKET INIT (FIXED)
