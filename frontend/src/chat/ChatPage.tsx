@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import BASE_URL from "../api";
-import { createSocket } from "../socket";
+import { createSocket } from "../socket.ts";
 import Navbar from "../components/Navbar";
 
 type User = {
