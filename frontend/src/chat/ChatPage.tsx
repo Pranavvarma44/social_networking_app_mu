@@ -21,7 +21,7 @@ export default function Chat() {
 
   const token = localStorage.getItem("token");
 
-  // ✅ SAFE TOKEN DECODE
+  // ✅ SAFE TOKEN
   let currentUserId: string | null = null;
   try {
     if (token) {
@@ -47,24 +47,7 @@ export default function Chat() {
   }, [messages]);
 
   // =========================
-  // FETCH GROUPS
-  // =========================
-  useEffect(() => {
-    if (!token) return;
-
-    axios
-      .get(`${BASE_URL}/groups`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((res) => {
-        console.log("GROUPS:", res.data);
-        setGroups(res.data);
-      })
-      .catch(console.error);
-  }, [token]);
-
-  // =========================
-  // FETCH USERS (FIXED)
+  // FETCH USERS
   // =========================
   useEffect(() => {
     if (!token || !currentUserId) return;
@@ -74,31 +57,50 @@ export default function Chat() {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
-        console.log("USERS RESPONSE:", res.data);
-
+        console.log("USERS:", res.data);
         const userList = res.data.users || res.data;
-
-        const filtered = userList.filter(
-          (u: any) => u._id !== currentUserId
-        );
-
-        setUsers(filtered);
+        setUsers(userList.filter((u: any) => u._id !== currentUserId));
       })
-      .catch((err) => {
-        console.error("USERS ERROR:", err.response?.data || err.message);
-      });
+      .catch((err) => console.error("USER ERROR:", err));
   }, [token, currentUserId]);
 
   // =========================
-  // SOCKET INIT
+  // FETCH GROUPS
   // =========================
   useEffect(() => {
     if (!token) return;
 
+    axios
+      .get(`${BASE_URL}/groups`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((res) => setGroups(res.data))
+      .catch(console.error);
+  }, [token]);
+
+  // =========================
+  // SOCKET INIT (FIXED)
+  // =========================
+  useEffect(() => {
+    if (!token || !currentUserId) return;
+
     socketRef.current = createSocket(token);
     const socket = socketRef.current;
 
+    socket.on("connect", () => {
+      console.log("✅ CONNECTED:", socket.id);
+
+      // 🔥 JOIN for online tracking
+      socket.emit("join", currentUserId);
+    });
+
+    socket.on("connect_error", (err: any) => {
+      console.error("❌ SOCKET ERROR:", err.message);
+    });
+
     socket.on("receive_message", (msg: any) => {
+      console.log("📩 RECEIVED:", msg);
+
       setMessages((prev) => {
         if (prev.some((m) => m._id === msg._id)) return prev;
         return [...prev, msg];
@@ -125,6 +127,7 @@ export default function Chat() {
     });
 
     socket.on("online_users", (users: string[]) => {
+      console.log("🟢 ONLINE:", users);
       setOnlineUsers(users);
     });
 
@@ -177,6 +180,8 @@ export default function Chat() {
   const sendMessage = () => {
     if (!text.trim() || !room) return;
 
+    console.log("📤 SENDING:", { room, text });
+
     socketRef.current.emit("send_message", { room, text });
     socketRef.current.emit("stop_typing", room);
 
@@ -202,7 +207,6 @@ export default function Chat() {
 
   return (
     <div className="h-screen flex flex-col bg-gray-100">
-
       <Navbar />
 
       <div className="flex flex-1 overflow-hidden">
@@ -219,7 +223,6 @@ export default function Chat() {
 
           {users.map((user) => {
             const isOnline = onlineUsers.includes(user._id);
-            const isActive = selectedUser?._id === user._id;
 
             return (
               <div
@@ -228,11 +231,9 @@ export default function Chat() {
                   setSelectedUser(user);
                   setSelectedGroup(null);
                 }}
-                className={`flex justify-between px-4 py-3 rounded-xl mb-2 cursor-pointer ${
-                  isActive ? "bg-blue-500 text-white" : "hover:bg-gray-100"
-                }`}
+                className="flex justify-between p-2 cursor-pointer hover:bg-gray-100"
               >
-                {user.name} {/* ✅ FIXED */}
+                {user.name}
                 <span className={isOnline ? "text-green-500" : "text-gray-400"}>
                   ●
                 </span>
@@ -288,7 +289,10 @@ export default function Chat() {
                 onChange={handleTyping}
                 className="flex-1 border p-2 rounded"
               />
-              <button onClick={sendMessage} className="bg-blue-500 text-white px-4 rounded">
+              <button
+                onClick={sendMessage}
+                className="bg-blue-500 text-white px-4 rounded"
+              >
                 Send
               </button>
             </div>
