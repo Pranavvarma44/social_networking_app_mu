@@ -1,6 +1,6 @@
 import express from "express";
 import Group from "../models/Group.js";
-import requireAuth from "../middleware/requireAuth.js";
+import {requireAuth} from "../middleware/requireAuth.js";
 
 const router = express.Router();
 
