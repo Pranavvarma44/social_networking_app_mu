@@ -1,35 +1,16 @@
 import { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import BASE_URL from "../api";
-import { createSocket } from "../socket.ts";
+import { createSocket } from "../socket";
 import Navbar from "../components/Navbar";
 
-type User = {
-  _id: string;
-  name: string;
-};
-
-type Group = {
-  _id: string;
-  name: string;
-};
-
-type Message = {
-  _id: string;
-  text: string;
-  room: string;
-  sender?: { _id: string };
-  timestamp: string;
-  status?: "sent" | "delivered" | "seen";
-};
-
 export default function Chat() {
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [selectedGroup, setSelectedGroup] = useState<any>(null);
+  const [messages, setMessages] = useState<any[]>([]);
   const [text, setText] = useState("");
-  const [users, setUsers] = useState<User[]>([]);
-  const [groups, setGroups] = useState<Group[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
+  const [groups, setGroups] = useState<any[]>([]);
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
   const [typingUserId, setTypingUserId] = useState<string | null>(null);
 
@@ -57,12 +38,10 @@ export default function Chat() {
     ? [currentUserId, selectedUser._id].sort().join("_")
     : null;
 
-  // 🔹 keep room ref
   useEffect(() => {
     roomRef.current = room;
   }, [room]);
 
-  // 🔹 auto scroll
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -77,12 +56,15 @@ export default function Chat() {
       .get(`${BASE_URL}/api/groups`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-      .then((res) => setGroups(res.data))
+      .then((res) => {
+        console.log("GROUPS:", res.data);
+        setGroups(res.data);
+      })
       .catch(console.error);
   }, [token]);
 
   // =========================
-  // FETCH USERS
+  // FETCH USERS (FIXED)
   // =========================
   useEffect(() => {
     if (!token || !currentUserId) return;
@@ -92,25 +74,31 @@ export default function Chat() {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
-        const filtered = res.data.filter(
-          (u: User) => u._id !== currentUserId
+        console.log("USERS RESPONSE:", res.data);
+
+        const userList = res.data.users || res.data;
+
+        const filtered = userList.filter(
+          (u: any) => u._id !== currentUserId
         );
+
         setUsers(filtered);
       })
-      .catch(console.error);
+      .catch((err) => {
+        console.error("USERS ERROR:", err.response?.data || err.message);
+      });
   }, [token, currentUserId]);
 
   // =========================
-  // SOCKET INIT (ONCE)
+  // SOCKET INIT
   // =========================
   useEffect(() => {
     if (!token) return;
 
     socketRef.current = createSocket(token);
-
     const socket = socketRef.current;
 
-    socket.on("receive_message", (msg: Message) => {
+    socket.on("receive_message", (msg: any) => {
       setMessages((prev) => {
         if (prev.some((m) => m._id === msg._id)) return prev;
         return [...prev, msg];
@@ -140,7 +128,7 @@ export default function Chat() {
       setOnlineUsers(users);
     });
 
-    socket.on("typing", ({ userId }: { userId: string }) => {
+    socket.on("typing", ({ userId }: any) => {
       if (userId !== currentUserId) setTypingUserId(userId);
     });
 
@@ -148,9 +136,7 @@ export default function Chat() {
       setTypingUserId(null);
     });
 
-    return () => {
-      socket.disconnect();
-    };
+    return () => socket.disconnect();
   }, [token, currentUserId]);
 
   // =========================
@@ -171,7 +157,7 @@ export default function Chat() {
       .then((res) => {
         setMessages(res.data);
 
-        res.data.forEach((msg: Message) => {
+        res.data.forEach((msg: any) => {
           if (
             msg.status !== "seen" &&
             msg.sender?._id !== currentUserId
@@ -227,8 +213,13 @@ export default function Chat() {
 
           <p className="text-xs text-gray-400 mb-2">Users</p>
 
+          {users.length === 0 && (
+            <p className="text-gray-400 text-sm">No users found</p>
+          )}
+
           {users.map((user) => {
             const isOnline = onlineUsers.includes(user._id);
+            const isActive = selectedUser?._id === user._id;
 
             return (
               <div
@@ -237,9 +228,11 @@ export default function Chat() {
                   setSelectedUser(user);
                   setSelectedGroup(null);
                 }}
-                className="flex justify-between p-2 cursor-pointer hover:bg-gray-100"
+                className={`flex justify-between px-4 py-3 rounded-xl mb-2 cursor-pointer ${
+                  isActive ? "bg-blue-500 text-white" : "hover:bg-gray-100"
+                }`}
               >
-                {user.name}
+                {user.name} {/* ✅ FIXED */}
                 <span className={isOnline ? "text-green-500" : "text-gray-400"}>
                   ●
                 </span>
