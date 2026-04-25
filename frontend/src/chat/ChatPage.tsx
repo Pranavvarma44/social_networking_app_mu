@@ -1,244 +1,307 @@
-import { useEffect, useState } from "react"
-import { io } from "socket.io-client"
-import axios from "axios"
+import { useEffect, useState, useRef } from "react";
+import axios from "axios";
+import BASE_URL from "../api";
+import { createSocket } from "../socket";
+import Navbar from "../components/Navbar";
 
-const API = import.meta.env.VITE_API_URL
-const SOCKET_URL = API.replace("/api", "")
+type User = {
+  _id: string;
+  name: string;
+};
 
-const socket = io(SOCKET_URL, {
-  transports: ["websocket"],
-  autoConnect: false,
-})
+type Group = {
+  _id: string;
+  name: string;
+};
 
-export default function ChatPage() {
-  const [conversations, setConversations] = useState<any[]>([])
-  const [messages, setMessages] = useState<any[]>([])
-  const [selectedUser, setSelectedUser] = useState<string | null>(null)
-  const [text, setText] = useState("")
-  const [showUsers, setShowUsers] = useState(false)
-  const [users, setUsers] = useState<any[]>([])
+type Message = {
+  _id: string;
+  text: string;
+  room: string;
+  sender?: { _id: string };
+  timestamp: string;
+  status?: "sent" | "delivered" | "seen";
+};
 
-  const token = localStorage.getItem("token")
+export default function Chat() {
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [text, setText] = useState("");
+  const [users, setUsers] = useState<User[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
+  const [typingUserId, setTypingUserId] = useState<string | null>(null);
 
-  // ✅ SAFE TOKEN
-  let myId: string | null = null
-  if (token) {
-    try {
-      const parts = token.split(".")
-      if (parts.length === 3) {
-        const payload = JSON.parse(atob(parts[1]))
-        myId = payload.userId
+  const socketRef = useRef<any>(null);
+  const typingTimeoutRef = useRef<any>(null);
+  const roomRef = useRef<string | null>(null);
+  const bottomRef = useRef<HTMLDivElement | null>(null);
+
+  const token = localStorage.getItem("token");
+
+  // ✅ SAFE TOKEN DECODE
+  let currentUserId: string | null = null;
+  try {
+    if (token) {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      currentUserId = payload.userId ?? payload.id ?? payload._id;
+    }
+  } catch {
+    localStorage.removeItem("token");
+  }
+
+  const room = selectedGroup
+    ? `group_${selectedGroup._id}`
+    : selectedUser
+    ? [currentUserId, selectedUser._id].sort().join("_")
+    : null;
+
+  // 🔹 keep room ref
+  useEffect(() => {
+    roomRef.current = room;
+  }, [room]);
+
+  // 🔹 auto scroll
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  // =========================
+  // FETCH GROUPS
+  // =========================
+  useEffect(() => {
+    if (!token) return;
+
+    axios
+      .get(`${BASE_URL}/api/groups`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((res) => setGroups(res.data))
+      .catch(console.error);
+  }, [token]);
+
+  // =========================
+  // FETCH USERS
+  // =========================
+  useEffect(() => {
+    if (!token || !currentUserId) return;
+
+    axios
+      .get(`${BASE_URL}/api/users`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((res) => {
+        const filtered = res.data.filter(
+          (u: User) => u._id !== currentUserId
+        );
+        setUsers(filtered);
+      })
+      .catch(console.error);
+  }, [token, currentUserId]);
+
+  // =========================
+  // SOCKET INIT (ONCE)
+  // =========================
+  useEffect(() => {
+    if (!token) return;
+
+    socketRef.current = createSocket(token);
+
+    const socket = socketRef.current;
+
+    socket.on("receive_message", (msg: Message) => {
+      setMessages((prev) => {
+        if (prev.some((m) => m._id === msg._id)) return prev;
+        return [...prev, msg];
+      });
+
+      socket.emit("message_delivered", {
+        messageId: msg._id,
+        room: msg.room,
+      });
+
+      if (msg.room === roomRef.current) {
+        socket.emit("message_seen", {
+          messageId: msg._id,
+        });
       }
-    } catch {
-      localStorage.removeItem("token")
-    }
-  }
+    });
 
-  if (!myId) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <p>Please login again</p>
-      </div>
-    )
-  }
+    socket.on("message_status", ({ messageId, status }: any) => {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m._id === messageId ? { ...m, status } : m
+        )
+      );
+    });
 
-  // ✅ SOCKET CONNECT + JOIN (RUNS ONCE)
-  useEffect(() => {
-    socket.connect()
+    socket.on("online_users", (users: string[]) => {
+      setOnlineUsers(users);
+    });
 
-    const handleConnect = () => {
-      console.log("CONNECTED:", myId)
-      socket.emit("join", myId)
-    }
+    socket.on("typing", ({ userId }: { userId: string }) => {
+      if (userId !== currentUserId) setTypingUserId(userId);
+    });
 
-    socket.on("connect", handleConnect)
+    socket.on("stop_typing", () => {
+      setTypingUserId(null);
+    });
 
     return () => {
-      socket.off("connect", handleConnect)
-    }
-  }, [myId])
+      socket.disconnect();
+    };
+  }, [token, currentUserId]);
 
-  // ✅ MESSAGE LISTENERS (SEPARATE)
+  // =========================
+  // ROOM CHANGE
+  // =========================
   useEffect(() => {
-    const handleReceive = (msg: any) => {
-      console.log("RECEIVED:", msg)
+    if (!room || !token) return;
 
-      setMessages((prev) => {
-        // prevent duplicates
-        if (prev.some((m) => m._id === msg._id)) return prev
+    setMessages([]);
+    setTypingUserId(null);
 
-        // only update if chat open
-        if (
-          msg.sender === selectedUser ||
-          msg.receiver === selectedUser
-        ) {
-          return [...prev, msg]
-        }
+    socketRef.current?.emit("join_room", room);
 
-        return prev
+    axios
+      .get(`${BASE_URL}/api/messages/${room}`, {
+        headers: { Authorization: `Bearer ${token}` },
       })
-    }
+      .then((res) => {
+        setMessages(res.data);
 
-    const handleSent = (msg: any) => {
-      console.log("SENT:", msg)
-
-      setMessages((prev) => {
-        if (prev.some((m) => m._id === msg._id)) return prev
-        return [...prev, msg]
+        res.data.forEach((msg: Message) => {
+          if (
+            msg.status !== "seen" &&
+            msg.sender?._id !== currentUserId
+          ) {
+            socketRef.current.emit("message_seen", {
+              messageId: msg._id,
+            });
+          }
+        });
       })
-    }
+      .catch(console.error);
+  }, [room, token, currentUserId]);
 
-    socket.on("receive_message", handleReceive)
-    socket.on("message_sent", handleSent)
-
-    return () => {
-      socket.off("receive_message", handleReceive)
-      socket.off("message_sent", handleSent)
-    }
-  }, [selectedUser])
-
-  // 🔹 conversations
-  useEffect(() => {
-    axios.get(`${API}/messages/conversations`, {
-      headers: { Authorization: `Bearer ${token}` }
-    }).then(res => setConversations(res.data.conversations))
-  }, [])
-
-  // 🔹 fetch users for new chat
-  useEffect(() => {
-    if (!showUsers) return
-
-    axios.get(`${API}/users`, {
-      headers: { Authorization: `Bearer ${token}` }
-    }).then(res => {
-      const filtered = res.data.users.filter((u: any) => u._id !== myId)
-      setUsers(filtered)
-    })
-  }, [showUsers])
-
-  // 🔹 open chat
-  const openChat = async (userId: string) => {
-    setSelectedUser(userId)
-
-    const res = await axios.get(`${API}/messages/${userId}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-
-    setMessages(res.data.messages)
-  }
-
-  // 🔹 send message
+  // =========================
+  // SEND MESSAGE
+  // =========================
   const sendMessage = () => {
-    if (!text || !selectedUser) return
+    if (!text.trim() || !room) return;
 
-    socket.emit("send_message", {
-      receiver: selectedUser,
-      content: text
-    })
+    socketRef.current.emit("send_message", { room, text });
+    socketRef.current.emit("stop_typing", room);
 
-    setText("")
-  }
+    setText("");
+  };
+
+  // =========================
+  // TYPING
+  // =========================
+  const handleTyping = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setText(e.target.value);
+
+    if (!room) return;
+
+    socketRef.current.emit("typing", room);
+
+    clearTimeout(typingTimeoutRef.current);
+
+    typingTimeoutRef.current = setTimeout(() => {
+      socketRef.current.emit("stop_typing", room);
+    }, 1000);
+  };
 
   return (
-    <div className="flex h-screen">
+    <div className="h-screen flex flex-col bg-gray-100">
 
-      {/* LEFT */}
-      <div className="w-1/3 border-r p-4">
-        <h2 className="font-bold mb-4">Chats</h2>
+      <Navbar />
 
-        <button
-          onClick={() => setShowUsers(!showUsers)}
-          className="mb-3 bg-black text-white px-3 py-1 rounded"
-        >
-          {showUsers ? "Close" : "New Chat"}
-        </button>
+      <div className="flex flex-1 overflow-hidden">
 
-        {/* NEW CHAT USER LIST */}
-        {showUsers && (
-          <div className="border p-2 mb-3 max-h-40 overflow-y-auto">
-            <p className="font-semibold mb-2">Select user</p>
+        {/* SIDEBAR */}
+        <div className="w-1/4 bg-white border-r p-4">
+          <h2 className="text-xl font-semibold mb-4">Chats</h2>
 
-            {users.map((u) => (
-              <div
-                key={u._id}
-                className="p-2 hover:bg-gray-100 cursor-pointer"
-                onClick={() => {
-                  setSelectedUser(u._id)
-                  setMessages([])
-                  setShowUsers(false)
-                }}
-              >
-                {u.name}
-              </div>
-            ))}
-          </div>
-        )}
+          <p className="text-xs text-gray-400 mb-2">Users</p>
 
-        {/* EXISTING CHATS */}
-        {conversations.length === 0 && (
-          <p className="text-gray-500">No chats yet</p>
-        )}
-
-        {conversations.map((c, i) => (
-          <div
-            key={i}
-            className={`p-2 cursor-pointer hover:bg-gray-100 ${
-              selectedUser === c.userId ? "bg-gray-200" : ""
-            }`}
-            onClick={() => openChat(c.userId)}
-          >
-            <p className="font-semibold">{c.name}</p>
-            <p className="text-sm text-gray-500">{c.lastMessage}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* RIGHT */}
-      <div className="flex-1 p-4 flex flex-col">
-
-        <div className="flex-1 overflow-y-auto">
-          {messages.map((m, i) => {
-            const isMe = m.sender === myId
+          {users.map((user) => {
+            const isOnline = onlineUsers.includes(user._id);
 
             return (
               <div
-                key={i}
-                className={`mb-2 flex ${
-                  isMe ? "justify-end" : "justify-start"
-                }`}
+                key={user._id}
+                onClick={() => {
+                  setSelectedUser(user);
+                  setSelectedGroup(null);
+                }}
+                className="flex justify-between p-2 cursor-pointer hover:bg-gray-100"
               >
-                <p
-                  className={`px-3 py-2 rounded ${
-                    isMe
-                      ? "bg-black text-white"
-                      : "bg-gray-200 text-black"
-                  }`}
-                >
-                  {m.content}
-                </p>
+                {user.name}
+                <span className={isOnline ? "text-green-500" : "text-gray-400"}>
+                  ●
+                </span>
               </div>
-            )
+            );
           })}
+
+          <p className="text-xs text-gray-400 mt-4 mb-2">Groups</p>
+
+          {groups.map((group) => (
+            <div
+              key={group._id}
+              onClick={() => {
+                setSelectedGroup(group);
+                setSelectedUser(null);
+              }}
+              className="p-2 cursor-pointer hover:bg-gray-100"
+            >
+              {group.name}
+            </div>
+          ))}
         </div>
 
-        {selectedUser && (
-          <div className="flex gap-2 mt-4">
-            <input
-              className="border p-2 flex-1"
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="Type message..."
-            />
-            <button
-              onClick={sendMessage}
-              className="bg-black text-white px-4"
-            >
-              Send
-            </button>
-          </div>
-        )}
+        {/* CHAT AREA */}
+        <div className="flex flex-col flex-1">
 
+          <div className="bg-white border-b p-4">
+            {selectedUser?.name || selectedGroup?.name || "Select chat"}
+            {typingUserId && (
+              <span className="text-gray-400 ml-2">Typing...</span>
+            )}
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4 space-y-2">
+            {messages.map((m) => {
+              const isMe = m.sender?._id === currentUserId;
+
+              return (
+                <div key={m._id} className={`flex ${isMe ? "justify-end" : ""}`}>
+                  <div className={`p-2 rounded ${isMe ? "bg-blue-500 text-white" : "bg-white"}`}>
+                    {m.text}
+                  </div>
+                </div>
+              );
+            })}
+            <div ref={bottomRef} />
+          </div>
+
+          {(selectedUser || selectedGroup) && (
+            <div className="p-4 flex gap-2 bg-white">
+              <input
+                value={text}
+                onChange={handleTyping}
+                className="flex-1 border p-2 rounded"
+              />
+              <button onClick={sendMessage} className="bg-blue-500 text-white px-4 rounded">
+                Send
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
-  )
+  );
 }
