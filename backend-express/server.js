@@ -10,6 +10,7 @@ import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import opportunityRoutes from "./routes/opportunityRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
+import jwt from "jsonwebtoken";
 
 
 dotenv.config();
