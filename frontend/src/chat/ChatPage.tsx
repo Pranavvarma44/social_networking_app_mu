@@ -70,7 +70,7 @@ export default function Chat() {
     if (!token || !currentUserId) return;
 
     axios
-      .get(`${BASE_URL}/api/users`, {
+      .get(`${BASE_URL}/users`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
