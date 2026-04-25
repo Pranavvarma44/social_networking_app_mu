@@ -5,15 +5,15 @@ import {
   createPost,
   getPosts,
   deletePost,
-} from "../controllers/post.controller.js";
+} from "../controllers/postController.js";
 
 import {
   addComment,
   getComments,
   deleteComment,
-} from "../controllers/comment.controller.js";
+} from "../controllers/CommentController.js";
 
-import { toggleLike } from "../controllers/like.controller.js";
+import { toggleLike } from "../controllers/likeController.js";
 
 const router = express.Router();
 
