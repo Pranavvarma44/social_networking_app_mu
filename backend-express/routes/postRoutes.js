@@ -11,7 +11,7 @@ import {
   addComment,
   getComments,
   deleteComment,
-} from "../controller/CommentController.js";
+} from "../controller/commentController.js";
 
 import { toggleLike } from "../controller/likeController.js";
 
