@@ -2,7 +2,6 @@ import { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import BASE_URL from "../api";
 import { createSocket } from "../socket";
-import Navbar from "../components/Navbar";
 
 export default function Chat() {
   const [selectedUser, setSelectedUser] = useState<any>(null);
