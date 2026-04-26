@@ -1,5 +1,4 @@
 import Post from "../models/postModel.js";
-import Post from "../models/postModel.js";
 
 import cloudinary from "../utils/cloudinary.js";
 
