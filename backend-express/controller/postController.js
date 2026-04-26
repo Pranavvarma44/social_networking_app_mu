@@ -19,6 +19,8 @@ export const createPost = async (req, res, next) => {
 
     res.status(201).json(post);
   } catch (err) {
+    console.error("❌ CREATE POST ERROR:", err); // 👈 ADD HERE
+
     next(err);
   }
 };
