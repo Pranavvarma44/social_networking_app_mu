@@ -6,7 +6,7 @@ export const toggleLike = async (req, res, next) => {
     const { postId } = req.params;
 
     const existing = await Like.findOne({
-      user: req.user.id,
+      user: req.user._id,
       post: postId,
     });
 
@@ -21,7 +21,7 @@ export const toggleLike = async (req, res, next) => {
     }
 
     await Like.create({
-      user: req.user.id,
+      user: req.user._id,
       post: postId,
     });
 

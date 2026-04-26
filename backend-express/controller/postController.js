@@ -12,7 +12,7 @@ export const createPost = async (req, res, next) => {
     }
 
     const post = await Post.create({
-      author: req.user.userId, // ✅ FIXED
+      author: req.user._id, // ✅ FIXED
       content,
       images: finalImages,     // ✅ FIXED
     });

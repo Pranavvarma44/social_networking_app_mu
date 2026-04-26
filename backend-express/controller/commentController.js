@@ -8,7 +8,7 @@ export const addComment = async (req, res, next) => {
 
     const comment = await Comment.create({
       post: postId,
-      author: req.user.id,
+      author: req.user._id,
       content,
     });
 
