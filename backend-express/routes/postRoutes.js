@@ -14,6 +14,7 @@ import {
 } from "../controller/commentController.js";
 
 import { toggleLike } from "../controller/likeController.js";
+import upload from "../middleware/upload.js";
 
 const router = express.Router();
 
@@ -22,7 +23,7 @@ const router = express.Router();
 ========================= */
 
 // Create post
-router.post("/", requireAuth, createPost);
+router.post("/", requireAuth,upload.single("image"), createPost);
 
 // GET POSTS
 

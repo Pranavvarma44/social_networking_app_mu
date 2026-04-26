@@ -1,30 +1,78 @@
 import Post from "../models/postModel.js";
+import Post from "../models/postModel.js";
+
+import cloudinary from "../utils/cloudinary.js";
+
+// helper to upload buffer
+
+const uploadToCloudinary = (buffer) => {
+
+  return new Promise((resolve, reject) => {
+
+    const stream = cloudinary.uploader.upload_stream(
+
+      { folder: "posts" },
+
+      (error, result) => {
+
+        if (error) reject(error);
+
+        else resolve(result.secure_url);
+
+      }
+
+    );
+
+    stream.end(buffer);
+
+  });
+
+};
 
 // CREATE POST
 export const createPost = async (req, res, next) => {
+
   try {
-    const { content, images, image } = req.body;
 
-    const finalImages = images || (image ? [image] : []);
+    const { content } = req.body;
 
-    if (!content && finalImages.length === 0) {
+    let imageUrl = null;
+
+    // 🔥 if file exists → upload
+
+    if (req.file) {
+
+      imageUrl = await uploadToCloudinary(req.file.buffer);
+
+    }
+
+    if (!content && !imageUrl) {
+
       return res.status(400).json({ message: "Post cannot be empty" });
+
     }
 
     const post = await Post.create({
-      author: req.user._id, // ✅ FIXED
+
+      author: req.user._id,
+
       content,
-      images: finalImages,     // ✅ FIXED
+
+      images: imageUrl ? [imageUrl] : [],
+
     });
 
     res.status(201).json(post);
+
   } catch (err) {
-    console.error("❌ CREATE POST ERROR:", err); // 👈 ADD HERE
+
+    console.error("❌ CREATE POST ERROR:", err);
 
     next(err);
-  }
-};
 
+  }
+
+};
 // GET POSTS
 export const getPosts = async (req, res, next) => {
   try {
