@@ -31,7 +31,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/opportunities", opportunityRoutes);
 app.use("/api/messages", messageRoutes);
-app.use("/api/posts",postRoutes);
+app.use("/api",postRoutes);
 
 // DB
 mongoose.connect(process.env.MONGO_URI)
