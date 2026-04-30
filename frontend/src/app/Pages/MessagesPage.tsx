@@ -96,7 +96,7 @@ export default function MessagesPage() {
 
     axios
 
-      .get(`${BASE_URL}/users`, {
+      .get(`${BASE_URL}/api/users`, {
 
         headers: { Authorization: `Bearer ${token}` },
 
@@ -188,7 +188,7 @@ export default function MessagesPage() {
 
     axios
 
-      .get(`${BASE_URL}/messages/${room}`, {
+      .get(`${BASE_URL}/api/messages/${room}`, {
 
         headers: { Authorization: `Bearer ${token}` },
 

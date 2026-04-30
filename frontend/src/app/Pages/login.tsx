@@ -19,7 +19,7 @@ export default function Login({ setIsAuthenticated }: AuthPageProps) {
     setError("");
 
     try {
-      const res = await axios.post(`${API}/auth/login`, {
+      const res = await axios.post(`${API}/api/auth/login`, {
         email,
         password,
       });

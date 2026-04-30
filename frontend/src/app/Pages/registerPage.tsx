@@ -26,7 +26,7 @@ export default function RegisterPage({ setIsAuthenticated }: Props) {
     setError("")
 
     try {
-      const res = await axios.post(`${API}/auth/register`, {
+      const res = await axios.post(`${API}api//auth/register`, {
         name,
         email,
         password,
