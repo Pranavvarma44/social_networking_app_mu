@@ -23,7 +23,7 @@ const router = express.Router();
 ========================= */
 
 // Create post
-router.post("/", requireAuth,upload.single("image"), createPost);
+router.post("/", requireAuth,upload.single("media"), createPost);
 
 // GET POSTS
 
@@ -45,4 +45,4 @@ router.delete("/comments/:commentId", requireAuth, deleteComment);
 
 router.post("/:postId/like", requireAuth, toggleLike);
 
-export default router;
+export default router;                         
