@@ -45,6 +45,7 @@ const postSchema = new mongoose.Schema(
       enum: ["public", "connections"],
       default: "public",
     },
+    seenBy: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   },
   {
     timestamps: true,

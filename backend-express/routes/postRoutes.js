@@ -1,10 +1,12 @@
 import express from "express";
-import {requireAuth} from "../middleware/requireAuth.js";
+import { requireAuth } from "../middleware/requireAuth.js";
 
 import {
   createPost,
   getPosts,
+  getFeedPosts,      // 🔥 NEW
   deletePost,
+  markPostSeen       // 🔥 NEW
 } from "../controller/postController.js";
 
 import {
@@ -22,27 +24,33 @@ const router = express.Router();
    POST ROUTES
 ========================= */
 
-// Create post
-router.post("/", requireAuth,upload.single("media"), createPost);
+// 🔥 CREATE POST (image/video)
+router.post("/", requireAuth, upload.single("media"), createPost);
 
-// GET POSTS
+// 🔥 FEED (following + own posts)
+router.get("/feed", requireAuth, getFeedPosts);
 
+// GET ALL POSTS (fallback/debug)
 router.get("/", requireAuth, getPosts);
 
 // DELETE POST
-
 router.delete("/:postId", requireAuth, deletePost);
 
-// COMMENTS
+// 🔥 MARK POST AS SEEN
+router.post("/:postId/seen", requireAuth, markPostSeen);
+
+/* =========================
+   COMMENTS
+========================= */
 
 router.post("/:postId/comments", requireAuth, addComment);
-
 router.get("/:postId/comments", requireAuth, getComments);
-
 router.delete("/comments/:commentId", requireAuth, deleteComment);
 
-// LIKE
+/* =========================
+   LIKE
+========================= */
 
 router.post("/:postId/like", requireAuth, toggleLike);
 
-export default router;                         
+export default router;
