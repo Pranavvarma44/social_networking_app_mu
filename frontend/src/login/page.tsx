@@ -89,13 +89,19 @@ export default function LoginPage() {
             )}
 
             {/* Button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-white text-black py-3 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50"
-            >
-              {loading ? "Logging in..." : "Login"}
-            </button>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 rounded-lg font-semibold 
+                      bg-gradient-to-r from-[#ff5757] to-[#ff3b3b] 
+                      text-white 
+                      shadow-lg shadow-red-500/20
+                      hover:shadow-red-500/40 hover:scale-[1.02]
+                      transition-all duration-200 
+                      disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? "Logging in..." : "Login"}
+          </button>
 
             {/* Signup */}
             <p className="text-center text-gray-400">
