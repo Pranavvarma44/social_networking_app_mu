@@ -11,19 +11,17 @@ export const toggleLike = async (req, res, next) => {
       post: postId,
     });
 
-    let likesCount;
+    let post;
 
     if (existingLike) {
       // 🔴 UNLIKE
       await existingLike.deleteOne();
 
-      const post = await Post.findByIdAndUpdate(
+      post = await Post.findByIdAndUpdate(
         postId,
         { $inc: { likesCount: -1 } },
         { new: true }
       );
-
-      likesCount = Math.max(post.likesCount, 0); // 🔥 prevent negative
 
     } else {
       // 🟢 LIKE
@@ -32,16 +30,20 @@ export const toggleLike = async (req, res, next) => {
         post: postId,
       });
 
-      const post = await Post.findByIdAndUpdate(
+      post = await Post.findByIdAndUpdate(
         postId,
         { $inc: { likesCount: 1 } },
         { new: true }
       );
-
-      likesCount = post.likesCount;
     }
 
-    res.json({ likesCount });
+    // 🔥 HARD FIX: NEVER allow negative
+    if (post.likesCount < 0) {
+      post.likesCount = 0;
+      await post.save();
+    }
+
+    res.json({ likesCount: post.likesCount });
 
   } catch (err) {
     console.error("LIKE ERROR:", err);
