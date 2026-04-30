@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
 import React, { useState, useEffect } from "react"
 
 import Login from "./Pages/login"
-import Home from "./Home/home"
+import Home from "./Home/Home"
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
