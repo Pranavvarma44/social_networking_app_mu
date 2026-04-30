@@ -21,7 +21,7 @@ export function RegisterForm({
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [role, setRole] = useState("student")
-  const [name, setName] = useState("")            
+  const [name, setName] = useState("")
   const [otp, setOtp] = useState("")
   const [showOtp, setShowOtp] = useState(false)
 
@@ -29,7 +29,6 @@ export function RegisterForm({
   const [loading, setLoading] = useState(false)
 
   /* -------- REGISTER -------- */
-
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -53,7 +52,6 @@ export function RegisterForm({
   }
 
   /* -------- VERIFY OTP -------- */
-
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -85,60 +83,48 @@ export function RegisterForm({
     >
       <FieldGroup>
 
+        {/* TITLE */}
         <div className="flex flex-col items-center gap-1 text-center">
-          <h1 className="text-2xl font-bold">
+          <h1 className="text-2xl font-bold text-white">
             {showOtp ? "Verify OTP" : "Sign Up"}
           </h1>
+          {showOtp && (
+            <p className="text-sm text-gray-400">
+              OTP sent to {email}
+            </p>
+          )}
         </div>
 
+        {/* REGISTER FIELDS */}
         {!showOtp && (
           <>
-            {/* NAME */}
             <Field>
-              <FieldLabel htmlFor="name">Username</FieldLabel>
-              <Input
-                id="name"
-                type="text"
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
+              <FieldLabel>Username</FieldLabel>
+              <Input value={name} onChange={(e) => setName(e.target.value)} />
             </Field>
 
-            {/* EMAIL */}
             <Field>
-              <FieldLabel htmlFor="email">Email</FieldLabel>
-              <Input
-                id="email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
+              <FieldLabel>Email</FieldLabel>
+              <Input value={email} onChange={(e) => setEmail(e.target.value)} />
             </Field>
 
-            {/* ROLE DROPDOWN */}
             <Field>
-              <FieldLabel htmlFor="role">Role</FieldLabel>
+              <FieldLabel>Role</FieldLabel>
               <select
-                id="role"
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                className="w-full rounded-md border border-gray-700 bg-black px-3 py-2 text-white"
               >
                 <option value="student">Student</option>
                 <option value="faculty">Faculty</option>
-                <option value="alumini">Alumini</option>
+                <option value="alumni">Alumni</option>
               </select>
             </Field>
 
-            {/* PASSWORD */}
             <Field>
-              <FieldLabel htmlFor="password">Password</FieldLabel>
+              <FieldLabel>Password</FieldLabel>
               <Input
-                id="password"
                 type="password"
-                required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
@@ -146,41 +132,49 @@ export function RegisterForm({
           </>
         )}
 
+        {/* OTP FIELD */}
         {showOtp && (
           <Field>
-            <FieldLabel htmlFor="otp">Enter OTP</FieldLabel>
+            <FieldLabel>Enter OTP</FieldLabel>
             <Input
-              id="otp"
-              type="text"
-              required
               value={otp}
               onChange={(e) => setOtp(e.target.value)}
+              placeholder="6-digit code"
+              className="tracking-widest text-center text-lg"
             />
           </Field>
         )}
 
+        {/* ERROR */}
         {error && (
           <p className="text-sm text-red-500 text-center">{error}</p>
         )}
 
-        <Field>
-          <Button type="submit" disabled={loading}>
-            {loading
-              ? "Please wait..."
-              : showOtp
-              ? "Verify OTP"
-              : "Register"}
-          </Button>
-        </Field>
+        {/* BUTTON */}
+        <Button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-gradient-to-r from-[#ff5757] to-[#ff3b3b] text-white 
+                     hover:scale-[1.02] transition-all"
+        >
+          {loading
+            ? "Please wait..."
+            : showOtp
+            ? "Verify OTP"
+            : "Create Account"}
+        </Button>
 
-        <Field>
-          <FieldDescription className="text-center">
-            Already have an account?{" "}
-            <a href="/" className="underline underline-offset-4">
-              Log in
-            </a>
-          </FieldDescription>
-        </Field>
+        {/* FOOTER */}
+        {!showOtp && (
+          <Field>
+            <FieldDescription className="text-center text-gray-400">
+              Already have an account?{" "}
+              <a href="/" className="underline text-white">
+                Log in
+              </a>
+            </FieldDescription>
+          </Field>
+        )}
 
       </FieldGroup>
     </form>
