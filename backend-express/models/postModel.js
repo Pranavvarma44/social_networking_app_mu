@@ -15,10 +15,12 @@ const postSchema = new mongoose.Schema(
       maxlength: 500,
     },
 
-    images: [
+    media: [
       {
-        type: String, // image URLs
-      },
+        url: String,
+        type: String,
+        public_id: String,
+      }
     ],
 
     // 🔥 Keep counts ONLY (not arrays)
