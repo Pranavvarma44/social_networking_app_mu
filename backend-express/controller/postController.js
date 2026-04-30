@@ -1,7 +1,10 @@
 import Post from "../models/postModel.js";
+import User from "../models/User.js";
 import cloudinary from "../utils/cloudinary.js";
 
-// 🔥 upload helper (returns full object)
+// =========================
+// 🔥 UPLOAD HELPER
+// =========================
 const uploadToCloudinary = (buffer) => {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
@@ -14,8 +17,8 @@ const uploadToCloudinary = (buffer) => {
         else {
           resolve({
             url: result.secure_url,
-            type: result.resource_type, // 🔥 image OR video
-            public_id: result.public_id, // 🔥 for delete
+            type: result.resource_type, // image | video
+            public_id: result.public_id,
           });
         }
       }
@@ -45,10 +48,14 @@ export const createPost = async (req, res, next) => {
     const post = await Post.create({
       author: req.user._id,
       content,
-      media, // 🔥 changed from images
+      media,
+      seenBy: [], // 🔥 optional (for feed filtering)
     });
 
-    res.status(201).json(post);
+    const populated = await post.populate("author", "name email");
+
+    res.status(201).json(populated);
+
   } catch (err) {
     console.error("❌ CREATE POST ERROR:", err);
     next(err);
@@ -56,7 +63,7 @@ export const createPost = async (req, res, next) => {
 };
 
 // =========================
-// GET POSTS
+// GET ALL POSTS (ADMIN / DEBUG)
 // =========================
 export const getPosts = async (req, res, next) => {
   try {
@@ -65,7 +72,42 @@ export const getPosts = async (req, res, next) => {
       .sort({ createdAt: -1 });
 
     res.json(posts);
+
   } catch (err) {
+    console.error("❌ GET POSTS ERROR:", err);
+    next(err);
+  }
+};
+
+// =========================
+//  GET FEED POSTS
+// =========================
+export const getFeedPosts = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // include following + self
+    const authors = [...user.following, userId];
+
+    const posts = await Post.find({
+      author: { $in: authors },
+
+      // 🔥 optional: remove seen posts
+      seenBy: { $ne: userId },
+    })
+      .populate("author", "name email")
+      .sort({ createdAt: -1 });
+
+    res.json(posts);
+
+  } catch (err) {
+    console.error("❌ FEED ERROR:", err);
     next(err);
   }
 };
@@ -81,13 +123,12 @@ export const deletePost = async (req, res, next) => {
       return res.status(404).json({ message: "Post not found" });
     }
 
-    // ✅ FIXED AUTH
     if (post.author.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: "Unauthorized" });
     }
 
-    // 🔥 delete media from cloudinary
-    if (post.media && post.media.length > 0) {
+    // 🔥 delete media from Cloudinary
+    if (post.media?.length > 0) {
       for (const item of post.media) {
         await cloudinary.uploader.destroy(item.public_id, {
           resource_type: item.type === "video" ? "video" : "image",
@@ -98,8 +139,28 @@ export const deletePost = async (req, res, next) => {
     await post.deleteOne();
 
     res.json({ message: "Post deleted" });
+
   } catch (err) {
     console.error("❌ DELETE POST ERROR:", err);
+    next(err);
+  }
+};
+
+// =========================
+// 🔥 MARK POST AS SEEN
+// =========================
+export const markPostSeen = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+
+    await Post.findByIdAndUpdate(req.params.postId, {
+      $addToSet: { seenBy: userId },
+    });
+
+    res.json({ message: "Post marked as seen" });
+
+  } catch (err) {
+    console.error("❌ SEEN ERROR:", err);
     next(err);
   }
 };
