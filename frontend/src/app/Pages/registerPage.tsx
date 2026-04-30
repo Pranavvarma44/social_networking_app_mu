@@ -174,7 +174,15 @@ export default function RegisterPage({ setIsAuthenticated }: Props) {
 
       {/* RIGHT */}
       <div className="flex-1 flex items-center justify-center">
-        <h1 className="text-white text-5xl">MU Social</h1>
+        <div className="text-center">
+          <div className="w-64 h-64 mx-auto mb-8 flex items-center justify-center">
+            <div className="relative">
+              <div className="text-[200px] text-[#ff5757] font-bold">M</div>
+              <div className="absolute top-0 right-0 text-[200px] text-[#ff5757] opacity-80 font-bold">U</div>
+            </div>
+          </div>
+          <h1 className="text-white text-5xl">MU Social</h1>
+        </div>
       </div>
     </div>
   )
