@@ -15,11 +15,10 @@ import StudyGroupsPage from "../Pages/StudyGroupsPage"
 import RightSidebar from "../components/RightSidebar"
 
 interface HomeProps {
-  isAuthenticated: boolean;
   setIsAuthenticated: (value: boolean) => void;
 }
 
-export default function Home({ isAuthenticated, setIsAuthenticated }: HomeProps) {
+export default function Home({ setIsAuthenticated }: HomeProps) {
   const [activeTab, setActiveTab] = useState('home');
 
   return (

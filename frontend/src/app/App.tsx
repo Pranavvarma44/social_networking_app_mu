@@ -1,39 +1,40 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
-import React, { useState } from "react"
-import Authpage from "./Pages/AuthPage"
+import React, { useState, useEffect } from "react"
+
+import Login from "./Pages/login"
 import Home from "./Home/Home"
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
 
+  // ✅ persist login using token
+  useEffect(() => {
+    const token = localStorage.getItem("token")
+    if (token) setIsAuthenticated(true)
+  }, [])
+
   return (
     <BrowserRouter>
       <Routes>
 
-        {/* Auth Page */}
+        {/* LOGIN ROUTE */}
         <Route
           path="/auth"
           element={
             !isAuthenticated ? (
-              <Authpage
-                isAuthenticated={isAuthenticated}
-                setIsAuthenticated={setIsAuthenticated}
-              />
+              <Login setIsAuthenticated={setIsAuthenticated} />
             ) : (
               <Navigate to="/" />
             )
           }
         />
 
-        {/* Home (Protected) */}
+        {/* HOME (PROTECTED) */}
         <Route
           path="/"
           element={
             isAuthenticated ? (
-              <Home
-                isAuthenticated={isAuthenticated}
-                setIsAuthenticated={setIsAuthenticated}
-              />
+              <Home setIsAuthenticated={setIsAuthenticated} />
             ) : (
               <Navigate to="/auth" />
             )
