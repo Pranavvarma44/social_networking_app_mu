@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
 import React, { useState, useEffect } from "react"
 
 import Login from "./Pages/login"
-import Home from "./Home/Home"
+import Home from "./Home/home"
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
@@ -19,7 +19,7 @@ function App() {
 
         {/* LOGIN ROUTE */}
         <Route
-          path="/auth"
+          path="/login"
           element={
             !isAuthenticated ? (
               <Login setIsAuthenticated={setIsAuthenticated} />
@@ -36,7 +36,7 @@ function App() {
             isAuthenticated ? (
               <Home setIsAuthenticated={setIsAuthenticated} />
             ) : (
-              <Navigate to="/auth" />
+              <Navigate to="login" />
             )
           }
         />
