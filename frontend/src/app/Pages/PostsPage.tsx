@@ -20,7 +20,7 @@ export default function PostsPage({ composeSignal }: { composeSignal?: number })
   useEffect(() => {
     if (!token) return
 
-    axios.get(`${API_URL}/posts/feed`, {
+    axios.get(`${API_URL}/api/posts/feed`, {
       headers: { Authorization: `Bearer ${token}` }
     })
     .then(res => setPosts(res.data))
@@ -53,7 +53,7 @@ export default function PostsPage({ composeSignal }: { composeSignal?: number })
 
     try {
       const res = await axios.post(
-        `${API_URL}/posts`,
+        `${API_URL}/api/posts`,
         { content: draft },
         {
           headers: { Authorization: `Bearer ${token}` }
@@ -74,7 +74,7 @@ export default function PostsPage({ composeSignal }: { composeSignal?: number })
   const toggleLike = async (postId: string) => {
     try {
       const res = await axios.post(
-        `${API_URL}/posts/${postId}/like`,
+        `${API_URL}/api/posts/${postId}/like`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       )
