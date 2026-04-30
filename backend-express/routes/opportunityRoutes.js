@@ -1,6 +1,6 @@
 import express from "express";
 import Opportunity from "../models/Opportunity.js";
-import requireAuth from "../middleware/requireAuth.js";
+import {requireAuth }from "../middleware/requireAuth.js";
 
 const router = express.Router();
 

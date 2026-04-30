@@ -1,89 +1,44 @@
 import express from "express";
-import requireAuth from "../middleware/requireAuth.js";
 import Message from "../models/Message.js";
+import  {requireAuth} from "../middleware/requireAuth.js";
 
 const router = express.Router();
 
-router.get("/conversations", requireAuth, async (req, res) => {
-    try {
-      const userId = req.user._id;
-  
-      const conversations = await Message.aggregate([
-        {
-          $match: {
-            $or: [
-              { sender: userId },
-              { receiver: userId }
-            ]
-          }
-        },
-  
-        // Sort by latest first
-        { $sort: { createdAt: -1 } },
-  
-        // Group by conversation partner
-        {
-          $group: {
-            _id: {
-              $cond: [
-                { $eq: ["$sender", userId] },
-                "$receiver",
-                "$sender"
-              ]
-            },
-            lastMessage: { $first: "$$ROOT" }
-          }
-        },
-  
-        // Populate user details
-        {
-          $lookup: {
-            from: "users",
-            localField: "_id",
-            foreignField: "_id",
-            as: "user"
-          }
-        },
-  
-        { $unwind: "$user" },
-  
-        {
-          $project: {
-            _id: 0,
-            userId: "$user._id",
-            name: "$user.name",
-            email: "$user.email",
-            lastMessage: "$lastMessage.content",
-            createdAt: "$lastMessage.createdAt"
-          }
-        }
-      ]);
-  
-      res.json({ conversations });
-  
-    } catch (err) {
-      console.error("Conversation error:", err);
-      res.status(500).json({ error: "Server error" });
-    }
-  });
 
-// Get conversation
-router.get("/:userId", requireAuth, async (req, res) => {
+router.get("/:room", requireAuth, async (req, res) => {
   try {
-    const otherUserId = req.params.userId;
+    const messages = await Message.find({ room: req.params.room })
+      .populate("sender", "username email") 
+      .sort({ timestamp: 1 });
 
-    const messages = await Message.find({
-      $or: [
-        { sender: req.user._id, receiver: otherUserId },
-        { sender: otherUserId, receiver: req.user._id },
-      ],
-    }).sort({ createdAt: 1 });
-
-    res.json({ messages });
-
+    res.json(messages);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Server error" });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+router.post("/", requireAuth, async (req, res) => {
+  try {
+    const { room, text } = req.body;
+
+    if (!room || !text) {
+      return res.status(400).json({ error: "Missing fields" });
+    }
+
+    const sender = req.user.userId; 
+
+    const message = await Message.create({
+      room,
+      sender,
+      text
+    });
+
+    const populatedMessage = await message.populate("sender", "username email");
+
+    res.status(201).json(populatedMessage);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
