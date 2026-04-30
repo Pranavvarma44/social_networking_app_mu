@@ -93,7 +93,7 @@ export const getFeedPosts = async (req, res, next) => {
     }
 
     // include following + self
-    const authors = [...user.following];
+    const authors = [...user.following, userId];
 
     const posts = await Post.find({
       author: { $in: authors },
