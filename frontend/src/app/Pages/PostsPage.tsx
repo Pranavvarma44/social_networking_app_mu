@@ -74,23 +74,23 @@ export default function PostsPage({ composeSignal }: { composeSignal?: number })
   const toggleLike = async (postId: string) => {
     try {
       const res = await axios.post(
-        `${API_URL}/api/posts/${postId}/like`,
+        `${API_URL}/posts/${postId}/like`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
-      )
-
+      );
+  
       setPosts(prev =>
         prev.map(p =>
           p._id === postId
             ? { ...p, likesCount: res.data.likesCount }
             : p
         )
-      )
-
+      );
+  
     } catch (err) {
-      console.error(err)
+      console.error(err);
     }
-  }
+  };
 
   return (
     <div>
