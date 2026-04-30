@@ -1,148 +1,182 @@
 import { useState } from "react"
 import axios from "axios"
 
-export default function LoginPage() {
-  const [name,setName]=useState("")
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field"
+import { Input } from "@/components/ui/input"
+
+export function RegisterForm({
+  className,
+  ...props
+}: React.ComponentProps<"form">) {
+
+  const API = import.meta.env.VITE_API_URL
+
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [role, setRole] = useState("student")
+  const [name, setName] = useState("")
+  const [otp, setOtp] = useState("")
+  const [showOtp, setShowOtp] = useState(false)
+
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
-  const handleLogin = async (e: React.FormEvent) => {
+  /* -------- REGISTER -------- */
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError("")
 
     try {
       const res = await axios.post(
-        `${import.meta.env.VITE_API_URL}/auth/login`,
-        { email, password }
+        `${API}/auth/register`,
+        { name, email, password, role }
       )
 
-      // ✅ save token
-      localStorage.setItem("token", res.data.token)
-
-      // ✅ redirect
-      window.location.href = "/dashboard"
+      if (res.status === 200 || res.status === 201) {
+        setShowOtp(true)
+      }
 
     } catch (err: any) {
-      setError(err.response?.data?.error || "Login failed")
+      setError(err.response?.data?.error || "Registration failed")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  /* -------- VERIFY OTP -------- */
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError("")
+
+    try {
+      const res = await axios.post(
+        `${API}/auth/verify-otp`,
+        { email, otp }
+      )
+
+      if (res.status === 200) {
+        localStorage.setItem("token", res.data.token)
+        window.location.href = "/dashboard"
+      }
+
+    } catch (err: any) {
+      setError(err.response?.data?.error || "Invalid OTP")
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] flex">
+    <form
+      onSubmit={showOtp ? handleVerifyOtp : handleRegister}
+      className={cn("flex flex-col gap-6", className)}
+      {...props}
+    >
+      <FieldGroup>
 
-      {/* LEFT SIDE */}
-      <div className="flex-1 flex items-center justify-center px-8">
-        <div className="w-full max-w-md">
-
-          {/* Logo */}
-          <div className="mb-12">
-            <h1 className="text-white text-sm mb-1 flex items-center gap-2">
-              <span className="text-2xl"></span> MU SOCIAL.
-            </h1>
-          </div>
-
-          {/* Heading */}
-          <div className="mb-8">
-            <h2 className="text-white text-4xl mb-3">
-              Login to your account
-            </h2>
-            <p className="text-gray-400">
-              Enter your email below to register
+        {/* TITLE */}
+        <div className="flex flex-col items-center gap-1 text-center">
+          <h1 className="text-2xl font-bold text-white">
+            {showOtp ? "Verify OTP" : "Sign Up"}
+          </h1>
+          {showOtp && (
+            <p className="text-sm text-gray-400">
+              OTP sent to {email}
             </p>
-          </div>
+          )}
+        </div>
 
-          {/* FORM */}
-          <form onSubmit={handleLogin} className="space-y-6">
+        {/* REGISTER FIELDS */}
+        {!showOtp && (
+          <>
+            <Field>
+              <FieldLabel>Username</FieldLabel>
+              <Input value={name} onChange={(e) => setName(e.target.value)} />
+            </Field>
 
-            <div>
-              <label className="text-white block mb-2">Email</label>
-              <input
-                type="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="name"
-                required
-                className="w-full bg-transparent border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#ff5757]"
-              />
-            </div>
+            <Field>
+              <FieldLabel>Email</FieldLabel>
+              <Input value={email} onChange={(e) => setEmail(e.target.value)} />
+            </Field>
 
+            <Field>
+              <FieldLabel>Role</FieldLabel>
+              <select
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                className="w-full rounded-md border border-gray-700 bg-black px-3 py-2 text-white"
+              >
+                <option value="student">Student</option>
+                <option value="faculty">Faculty</option>
+                <option value="alumni">Alumni</option>
+              </select>
+            </Field>
 
-            {/* Email */}
-            <div>
-              <label className="text-white block mb-2">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="m@example.com"
-                required
-                className="w-full bg-transparent border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#ff5757]"
-              />
-            </div>
-
-            {/* Password */}
-            <div>
-              <label className="text-white block mb-2">Password</label>
-              <input
+            <Field>
+              <FieldLabel>Password</FieldLabel>
+              <Input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                required
-                className="w-full bg-transparent border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#ff5757]"
               />
-            </div>
+            </Field>
+          </>
+        )}
 
-            {/* Error */}
-            {error && (
-              <p className="text-red-500 text-sm text-center">{error}</p>
-            )}
+        {/* OTP FIELD */}
+        {showOtp && (
+          <Field>
+            <FieldLabel>Enter OTP</FieldLabel>
+            <Input
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
+              placeholder="6-digit code"
+              className="tracking-widest text-center text-lg"
+            />
+          </Field>
+        )}
 
-            {/* Button */}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 rounded-lg font-semibold 
-                      bg-gradient-to-r from-[#ff5757] to-[#ff3b3b] 
-                      text-white 
-                      shadow-lg shadow-red-500/20
-                      hover:shadow-red-500/40 hover:scale-[1.02]
-                      transition-all duration-200 
-                      disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? "Logging in..." : "Login"}
-          </button>
+        {/* ERROR */}
+        {error && (
+          <p className="text-sm text-red-500 text-center">{error}</p>
+        )}
 
-            {/* Signup */}
-            <p className="text-center text-gray-400">
-              Don't have an account?{" "}
-              <a href="/register" className="text-white underline">
-                Sign up
+        {/* BUTTON */}
+        <Button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-gradient-to-r from-[#ff5757] to-[#ff3b3b] text-white 
+                     hover:scale-[1.02] transition-all"
+        >
+          {loading
+            ? "Please wait..."
+            : showOtp
+            ? "Verify OTP"
+            : "Create Account"}
+        </Button>
+
+        {/* FOOTER */}
+        {!showOtp && (
+          <Field>
+            <FieldDescription className="text-center text-gray-400">
+              Already have an account?{" "}
+              <a href="/" className="underline text-white">
+                Log in
               </a>
-            </p>
+            </FieldDescription>
+          </Field>
+        )}
 
-          </form>
-        </div>
-      </div>
-
-      {/* RIGHT SIDE */}
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-center">
-
-          <div className="w-64 h-64 mx-auto mb-8 flex items-center justify-center">
-            <div className="relative">
-              <div className="text-[200px] text-[#ff5757] leading-none font-bold">M</div>
-              <div className="absolute top-0 right-0 text-[200px] text-[#ff5757] leading-none font-bold opacity-80">U</div>
-            </div>
-          </div>
-
-          <h1 className="text-white text-5xl">MU Social</h1>
-        </div>
-      </div>
-    </div>
+      </FieldGroup>
+    </form>
   )
 }
