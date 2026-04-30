@@ -53,7 +53,7 @@ const server = http.createServer(app);
 // 🔌 Socket setup
 const io = new Server(server, {
   cors: {
-    origin: true,
+    origin: "*",
     methods: ["GET", "POST"]
   }
 });
