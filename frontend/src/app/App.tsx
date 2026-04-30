@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react"
 
 import Login from "./Pages/login"
 import Home from "./Home/Home"
+import RegisterPage from "./Pages/registerPage"
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
@@ -39,6 +40,25 @@ function App() {
               <Navigate to="login" />
             )
           }
+        />
+        <Route
+
+        path="/register"
+
+        element={
+
+          !isAuthenticated ? (
+
+            <RegisterPage setIsAuthenticated={setIsAuthenticated} />
+
+          ) : (
+
+            <Navigate to="/" />
+
+          )
+
+        }
+
         />
 
       </Routes>
