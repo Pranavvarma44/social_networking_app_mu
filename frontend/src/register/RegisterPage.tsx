@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 
-export function RegisterForm({
+export default function RegisterPage({
   className,
   ...props
 }: React.ComponentProps<"form">) {
