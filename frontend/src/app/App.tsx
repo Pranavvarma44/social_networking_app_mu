@@ -8,7 +8,7 @@ import RegisterPage from "./Pages/registerPage"
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
 
-  // ✅ persist login using token
+  
   useEffect(() => {
     const token = localStorage.getItem("token")
     if (token) setIsAuthenticated(true)
