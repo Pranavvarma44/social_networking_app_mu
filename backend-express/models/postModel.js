@@ -17,10 +17,19 @@ const postSchema = new mongoose.Schema(
 
     media: [
       {
-        url: String,
-        type: String,
-        public_id: String,
-      }
+        url: {
+          type: String,
+          required: true,
+        },
+        type: {
+          type: String, // image | video
+          required: true,
+        },
+        public_id: {
+          type: String,
+          required: true,
+        },
+      },
     ],
 
     // 🔥 Keep counts ONLY (not arrays)
