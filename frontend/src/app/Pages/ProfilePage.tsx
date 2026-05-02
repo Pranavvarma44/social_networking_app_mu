@@ -6,14 +6,6 @@ import {
   Edit2,
   Check,
   X,
-  UserPlus,
-  Users,
-  Heart,
-  MessageSquare,
-  Share2,
-  Bookmark,
-  MoreHorizontal,
-  Grid,
   ArrowLeft,
 } from "lucide-react"
 
@@ -23,13 +15,15 @@ interface ProfilePageProps {
 }
 
 export default function ProfilePage({ onBack, userId }: ProfilePageProps) {
+
   const token = localStorage.getItem("token")
 
+  // 🔐 CURRENT USER
   let currentUserId: string | null = null
   try {
     if (token) {
       const payload = JSON.parse(atob(token.split(".")[1]))
-      currentUserId = payload.userId ?? payload.id ?? payload._id
+      currentUserId = payload._id || payload.userId || payload.id
     }
   } catch {
     localStorage.removeItem("token")
@@ -47,14 +41,17 @@ export default function ProfilePage({ onBack, userId }: ProfilePageProps) {
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // ================= FETCH DATA =================
+  // ================= FETCH =================
   const fetchProfile = async () => {
     try {
       const res = await axios.get(`${BASE_URL}/api/users/${profileId}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
+
       setUser(res.data.user)
       setNameInput(res.data.user.name)
+      setProfilePic(res.data.user.profilePic || null)
+
     } catch (err) {
       console.error("PROFILE ERROR:", err)
     }
@@ -65,14 +62,16 @@ export default function ProfilePage({ onBack, userId }: ProfilePageProps) {
       const res = await axios.get(`${BASE_URL}/api/posts/user/${profileId}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
+
       setPosts(res.data)
+
     } catch (err) {
       console.error("POST ERROR:", err)
     }
   }
 
   useEffect(() => {
-    if (!token || !profileId) return
+    if (!profileId || !token) return
     fetchProfile()
     fetchPosts()
   }, [profileId])
@@ -103,8 +102,10 @@ export default function ProfilePage({ onBack, userId }: ProfilePageProps) {
     }
   }
 
+  // 🔥 FIXED FOLLOW CHECK
   const isFollowing = user?.followers?.some(
-    (f: any) => f === currentUserId || f._id === currentUserId
+    (f: any) =>
+      (typeof f === "string" ? f : f._id)?.toString() === currentUserId?.toString()
   )
 
   // ================= PROFILE PIC =================
@@ -122,7 +123,7 @@ export default function ProfilePage({ onBack, userId }: ProfilePageProps) {
   // ================= NAME =================
   const saveName = () => {
     setEditingName(false)
-    // OPTIONAL: send update API here
+    // optional API
   }
 
   const cancelName = () => {
@@ -130,14 +131,20 @@ export default function ProfilePage({ onBack, userId }: ProfilePageProps) {
     setEditingName(false)
   }
 
-  if (!user) return <div className="p-6 text-gray-400">Loading...</div>
+  if (!user) {
+    return <div className="p-6 text-gray-400">Loading...</div>
+  }
 
   return (
     <div className="max-w-2xl mx-auto p-6">
 
       {/* BACK */}
-      <button onClick={onBack} className="flex items-center gap-2 text-gray-400 mb-6">
-        <ArrowLeft className="w-4 h-4" /> Back
+      <button
+        onClick={onBack}
+        className="flex items-center gap-2 text-gray-400 mb-6"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Back
       </button>
 
       {/* PROFILE CARD */}
@@ -153,10 +160,10 @@ export default function ProfilePage({ onBack, userId }: ProfilePageProps) {
             <div className="relative">
               <div
                 onClick={() => isOwnProfile && fileInputRef.current?.click()}
-                className="w-20 h-20 rounded-full bg-[#ff5757] flex items-center justify-center text-white text-xl cursor-pointer"
+                className="w-20 h-20 rounded-full bg-[#ff5757] flex items-center justify-center text-white text-xl cursor-pointer overflow-hidden"
               >
                 {profilePic ? (
-                  <img src={profilePic} className="w-full h-full object-cover rounded-full" />
+                  <img src={profilePic} className="w-full h-full object-cover" />
                 ) : (
                   user.name?.[0]
                 )}
@@ -164,14 +171,17 @@ export default function ProfilePage({ onBack, userId }: ProfilePageProps) {
 
               {isOwnProfile && (
                 <>
-                  <button onClick={() => fileInputRef.current?.click()} className="absolute bottom-0 right-0 bg-[#ff5757] p-1 rounded-full">
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="absolute bottom-0 right-0 bg-[#ff5757] p-1 rounded-full"
+                  >
                     <Camera className="w-3 h-3" />
                   </button>
 
                   <input
                     ref={fileInputRef}
                     type="file"
-                    className="hidden"
+                    hidden
                     onChange={handleFileChange}
                   />
                 </>
@@ -180,12 +190,21 @@ export default function ProfilePage({ onBack, userId }: ProfilePageProps) {
 
             {/* FOLLOW BUTTON */}
             {!isOwnProfile && (
-              <button
-                onClick={isFollowing ? handleUnfollow : handleFollow}
-                className="px-4 py-2 bg-[#ff5757] rounded text-sm"
-              >
-                {isFollowing ? "Following" : "Follow"}
-              </button>
+              isFollowing ? (
+                <button
+                  onClick={handleUnfollow}
+                  className="px-4 py-2 bg-gray-600 rounded hover:bg-gray-500"
+                >
+                  Unfollow
+                </button>
+              ) : (
+                <button
+                  onClick={handleFollow}
+                  className="px-4 py-2 bg-[#ff5757] rounded hover:bg-[#ff4545]"
+                >
+                  Follow
+                </button>
+              )
             )}
           </div>
 
@@ -195,39 +214,43 @@ export default function ProfilePage({ onBack, userId }: ProfilePageProps) {
               <input
                 value={nameInput}
                 onChange={(e) => setNameInput(e.target.value)}
-                className="bg-[#1a1a1a] px-2"
+                className="bg-[#1a1a1a] px-2 rounded"
               />
               <button onClick={saveName}><Check /></button>
               <button onClick={cancelName}><X /></button>
             </div>
           ) : (
-            <div className="flex gap-2">
-              <h2 className="text-xl">{user.name}</h2>
+            <div className="flex gap-2 items-center">
+              <h2 className="text-xl font-semibold">{user.name}</h2>
+
               {isOwnProfile && (
                 <button onClick={() => setEditingName(true)}>
-                  <Edit2 className="w-4 h-4" />
+                  <Edit2 className="w-4 h-4 text-gray-400" />
                 </button>
               )}
             </div>
           )}
 
-          <p className="text-gray-500">@{user.name?.toLowerCase()}</p>
+          <p className="text-gray-500 text-sm">
+            @{user.name?.toLowerCase().replace(/\s+/g, "")}
+          </p>
 
           {/* STATS */}
-          <div className="flex gap-6 mt-4">
-            <div>{posts.length} Posts</div>
-            <div>{user.followers?.length || 0} Followers</div>
-            <div>{user.following?.length || 0} Following</div>
+          <div className="flex gap-6 mt-4 text-sm">
+            <div><b>{posts.length}</b> Posts</div>
+            <div><b>{user.followers?.length || 0}</b> Followers</div>
+            <div><b>{user.following?.length || 0}</b> Following</div>
           </div>
+
         </div>
       </div>
 
       {/* POSTS */}
       <div>
-        <h3 className="mb-4">Posts</h3>
+        <h3 className="mb-4 font-semibold">Posts</h3>
 
         {posts.map((post) => (
-          <div key={post._id} className="border p-4 mb-3 rounded">
+          <div key={post._id} className="border border-gray-800 p-4 mb-3 rounded">
             <p>{post.content}</p>
 
             <div className="flex gap-4 mt-2 text-gray-400 text-sm">
@@ -237,6 +260,7 @@ export default function ProfilePage({ onBack, userId }: ProfilePageProps) {
           </div>
         ))}
       </div>
+
     </div>
   )
 }
