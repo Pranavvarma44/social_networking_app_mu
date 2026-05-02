@@ -29,15 +29,7 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
   const [activeTab, setActiveTab] = useState("home")
   const [showProfile, setShowProfile] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
-  const [profileUserId, setProfileUserId] = useState<string | null>(null)
-
-  const openProfile = (userId: string) => {
-
-    setProfileUserId(userId)
   
-    setShowProfile(true)
-  
-  }
 
   const handleProfileClick = () => {
     setShowProfile(true)
@@ -54,40 +46,20 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
 
   // ✅ CLEANER PAGE RENDER
   const renderMain = () => {
+    if (showProfile) {
+      return <ProfilePage onBack={handleBackFromProfile} />
+    }
 
-  if (showProfile) {
+    const pages: any = {
+      home: <PostsPage />,
+      messages: <MessagesPage />,
+      events: <EventsPage />,
+      study: <StudyGroupsPage />,
+      opportunities: <OpportunitiesPage />,
+    }
 
-    return (
-
-      <ProfilePage
-
-        onBack={handleBackFromProfile}
-
-        userId={profileUserId || undefined}
-
-      />
-
-    )
-
+    return pages[activeTab] || <PostsPage />
   }
-
-  const pages: any = {
-
-    home: <PostsPage onUserClick={openProfile} />,
-
-    messages: <MessagesPage />,
-
-    events: <EventsPage />,
-
-    study: <StudyGroupsPage />,
-
-    opportunities: <OpportunitiesPage />,
-
-  }
-
-  return pages[activeTab] || <PostsPage onUserClick={openProfile} />
-
-}
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
