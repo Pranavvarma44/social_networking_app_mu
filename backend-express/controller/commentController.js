@@ -16,11 +16,7 @@ export const addComment = async (req, res, next) => {
       $inc: { commentsCount: 1 },
     });
 
-    // 🔥 FIX: populate author before sending
-    const populatedComment = await comment.populate("author", "name");
-
-    res.status(201).json(populatedComment);
-
+    res.status(201).json(comment);
   } catch (err) {
     next(err);
   }
