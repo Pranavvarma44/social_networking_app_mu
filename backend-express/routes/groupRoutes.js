@@ -21,11 +21,11 @@ const group = await StudyGroup.create({
 
 // get groups of user
 router.get("/", requireAuth, async (req, res) => {
-  const groups = await StudyGroup.find({
-    members: req.user.userId
-  });
 
-  res.json(groups);
-});
+  const groups = await StudyGroup.find()
+
+  res.json(groups)
+
+})
 
 export default router;
