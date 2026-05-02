@@ -55,39 +55,39 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
   // ✅ CLEANER PAGE RENDER
   const renderMain = () => {
 
-    if (showProfile) {
-  
-      return (
-  
-        <ProfilePage
-  
-          onBack={handleBackFromProfile}
-  
-          userId={profileUserId || undefined}
-  
-        />
-  
-      )
-  
-    }
-  
-    const pages: any = {
-  
-      home: <PostsPage onUserClick={openProfile} />,
-  
-      messages: <MessagesPage />,
-  
-      events: <EventsPage />,
-  
-      study: <StudyGroupsPage />,
-  
-      opportunities: <OpportunitiesPage />,
-  
-    }
-  
-    return pages[activeTab] || <PostsPage onUserClick={openProfile} />
-  
+  if (showProfile) {
+
+    return (
+
+      <ProfilePage
+
+        onBack={handleBackFromProfile}
+
+        userId={profileUserId || undefined}
+
+      />
+
+    )
+
   }
+
+  const pages: any = {
+
+    home: <PostsPage onUserClick={openProfile} />,
+
+    messages: <MessagesPage />,
+
+    events: <EventsPage />,
+
+    study: <StudyGroupsPage />,
+
+    opportunities: <OpportunitiesPage />,
+
+  }
+
+  return pages[activeTab] || <PostsPage onUserClick={openProfile} />
+
+}
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
