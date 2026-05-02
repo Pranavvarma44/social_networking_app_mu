@@ -5,7 +5,8 @@ import {requireAuth} from "../middleware/requireAuth.js";
 const router = express.Router();
 
 // create group
-const { name, description, subject } = req.body
+router.post("/", requireAuth, async (req, res) => {
+  const { name, description, subject } = req.body
 
 const group = await StudyGroup.create({
   name,
@@ -13,7 +14,10 @@ const group = await StudyGroup.create({
   subject,
   createdBy: req.user._id,
   members: [req.user._id], // ✅ ALWAYS ARRAY
-})
+});
+
+  res.json(group);
+});
 
 // get groups of user
 router.get("/", requireAuth, async (req, res) => {
