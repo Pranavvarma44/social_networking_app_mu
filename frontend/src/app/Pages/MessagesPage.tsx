@@ -64,7 +64,7 @@ export default function MessagesPage() {
     if (!token || !showNewChat) return
 
     axios
-      .get(`${BASE_URL}/api/users`, {
+      .get(`${BASE_URL}/api/chat-user`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => setAllUsers(res.data.users || res.data))
