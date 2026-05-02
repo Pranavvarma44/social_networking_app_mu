@@ -30,11 +30,13 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
   const [profileUserId, setProfileUserId] = useState<string | null>(null)
   const [showNotifications, setShowNotifications] = useState(false)
 
+  // 🔥 OPEN OTHER USER PROFILE
   const openProfile = (userId: string) => {
     setProfileUserId(userId)
     setShowProfile(true)
   }
 
+  // 🔥 OPEN OWN PROFILE
   const handleProfileClick = () => {
     setProfileUserId(null)
     setShowProfile(true)
@@ -49,6 +51,7 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
     setShowNotifications((prev) => !prev)
   }
 
+  // 🔥 MAIN RENDER
   const renderMain = () => {
     if (showProfile) {
       return (
@@ -77,19 +80,18 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
     <div className="min-h-screen bg-[#0a0a0a] text-white">
 
       {/* 🔝 TOP NAV */}
-      <div className="border-b border-gray-800 bg-[#0a0a0a] sticky top-0 z-50">
+      <div className="border-b border-gray-800 sticky top-0 z-50 bg-[#0a0a0a]">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
 
           {/* LOGO + SEARCH */}
           <div className="flex items-center gap-8">
-            <h1 className="text-xl flex items-center gap-2">
+            <h1 className="text-xl">
               <span className="text-[#ff5757]">MU</span> SOCIAL.
             </h1>
 
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
               <input
-                type="text"
                 placeholder="Search MU Social..."
                 className="bg-[#1a1a1a] border border-gray-800 rounded-full pl-10 pr-4 py-2 w-80 text-sm focus:outline-none focus:border-[#ff5757]"
               />
@@ -99,11 +101,11 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
           {/* RIGHT SIDE */}
           <div className="flex items-center gap-4">
 
-            {/* 🔔 Notifications */}
+            {/* 🔔 NOTIFICATIONS */}
             <div className="relative">
               <button
                 onClick={toggleNotifications}
-                className={`p-2 rounded-full transition-colors ${
+                className={`p-2 rounded-full ${
                   showNotifications
                     ? "bg-[#ff5757]/20"
                     : "hover:bg-[#1a1a1a]"
@@ -122,7 +124,7 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
             {/* 👤 PROFILE */}
             <button
               onClick={handleProfileClick}
-              className="w-8 h-8 bg-[#ff5757] rounded-full flex items-center justify-center text-sm hover:ring-2 hover:ring-[#ff5757]/60"
+              className="w-8 h-8 bg-[#ff5757] rounded-full flex items-center justify-center"
             >
               JD
             </button>
@@ -151,7 +153,7 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
               active={activeTab === "home" && !showProfile}
               onClick={() => {
                 setActiveTab("home")
-                setShowProfile(false)
+                setShowProfile(false) // 🔥 FIX
               }}
             />
 
@@ -161,7 +163,7 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
               active={activeTab === "messages" && !showProfile}
               onClick={() => {
                 setActiveTab("messages")
-                setShowProfile(false)
+                setShowProfile(false) // 🔥 FIX
               }}
             />
 
@@ -171,7 +173,7 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
               active={activeTab === "study" && !showProfile}
               onClick={() => {
                 setActiveTab("study")
-                setShowProfile(false)
+                setShowProfile(false) // 🔥 FIX
               }}
             />
 
@@ -181,7 +183,7 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
               active={activeTab === "events" && !showProfile}
               onClick={() => {
                 setActiveTab("events")
-                setShowProfile(false)
+                setShowProfile(false) // 🔥 FIX
               }}
             />
 
@@ -191,11 +193,10 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
               active={activeTab === "opportunities" && !showProfile}
               onClick={() => {
                 setActiveTab("opportunities")
-                setShowProfile(false)
+                setShowProfile(false) // 🔥 FIX
               }}
             />
 
-            {/* PROFILE TAB */}
             <NavItem
               icon={Users}
               label="Profile"
@@ -205,7 +206,7 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
           </nav>
         </div>
 
-        {/* 🧠 MAIN CONTENT */}
+        {/* 🧠 MAIN */}
         <div className="flex-1 border-r border-gray-800">
           {renderMain()}
         </div>
@@ -232,7 +233,7 @@ function NavItem({
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-3 w-full px-4 py-3 rounded-lg transition ${
+      className={`flex items-center gap-3 w-full px-4 py-3 rounded-lg ${
         active
           ? "bg-[#ff5757] text-white"
           : "text-gray-400 hover:bg-[#1a1a1a] hover:text-white"
