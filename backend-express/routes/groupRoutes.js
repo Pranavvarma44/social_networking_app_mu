@@ -1,24 +1,23 @@
 import express from "express";
-import Group from "../models/Group.js";
+import StudyGroup from "../models/StudyGroup.js";
 import {requireAuth} from "../middleware/requireAuth.js";
 
 const router = express.Router();
 
 // create group
-router.post("/", requireAuth, async (req, res) => {
-  const { name, members } = req.body;
+const { name, description, subject } = req.body
 
-  const group = await Group.create({
-    name,
-    members: [...members, req.user.userId] // include creator
-  });
-
-  res.json(group);
-});
+const group = await StudyGroup.create({
+  name,
+  description,
+  subject,
+  createdBy: req.user._id,
+  members: [req.user._id], // ✅ ALWAYS ARRAY
+})
 
 // get groups of user
 router.get("/", requireAuth, async (req, res) => {
-  const groups = await Group.find({
+  const groups = await StudyGroup.find({
     members: req.user.userId
   });
 
