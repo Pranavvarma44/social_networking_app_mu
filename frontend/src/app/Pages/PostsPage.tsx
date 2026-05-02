@@ -119,7 +119,7 @@ export default function PostsPage({
     try {
       const res = await axios.post(
         `${API_URL}/api/posts/${postId}/comments`,
-        { text: commentText },
+        { content: commentText },
         { headers: { Authorization: `Bearer ${token}` } }
       )
   
