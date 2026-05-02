@@ -1,9 +1,13 @@
 import { Plus, Search, Users } from "lucide-react"
-import React,{ useEffect, useState } from "react"
+import React, { useEffect, useState } from "react"
 import axios from "axios"
 import BASE_URL from "../../api"
 
-export default function StudyGroupsPage() {
+interface Props {
+  onGroupClick?: (id: string) => void // 🔥 NEW
+}
+
+export default function StudyGroupsPage({ onGroupClick }: Props) {
 
   const [groups, setGroups] = useState<any[]>([])
   const [search, setSearch] = useState("")
@@ -28,14 +32,9 @@ export default function StudyGroupsPage() {
   // ================= FETCH =================
   const fetchGroups = async () => {
     try {
-      const res = await axios.get(`${BASE_URL}/api/study-groups`,
-        {
-          headers: {
-      
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      )
+      const res = await axios.get(`${BASE_URL}/api/study-groups`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
       setGroups(res.data)
     } catch (err) {
       console.error(err)
@@ -64,28 +63,34 @@ export default function StudyGroupsPage() {
   }
 
   // ================= JOIN =================
-  const handleJoin = async (id: string) => {
+  const handleJoin = async (e: any, id: string) => {
+    e.stopPropagation() // 🔥 prevent card click
+
     await axios.post(
       `${BASE_URL}/api/study-groups/${id}/join`,
       {},
       { headers: { Authorization: `Bearer ${token}` } }
     )
+
     fetchGroups()
   }
 
   // ================= LEAVE =================
-  const handleLeave = async (id: string) => {
+  const handleLeave = async (e: any, id: string) => {
+    e.stopPropagation() // 🔥 prevent card click
+
     await axios.post(
       `${BASE_URL}/api/study-groups/${id}/leave`,
       {},
       { headers: { Authorization: `Bearer ${token}` } }
     )
+
     fetchGroups()
   }
 
   // ================= SEARCH FILTER =================
   const filteredGroups = groups.filter((g) =>
-    g.name.toLowerCase().includes(search.toLowerCase())
+    g.name?.toLowerCase().includes(search.toLowerCase())
   )
 
   return (
@@ -175,14 +180,18 @@ export default function StudyGroupsPage() {
       <div className="grid grid-cols-1 gap-4">
         {filteredGroups.map((g) => {
 
-          const isMember = g.members.some(
-            (m: any) => (m._id || m) === currentUserId
+          const members = g.members || []
+
+          const isMember = members.some(
+            (m: any) =>
+              (m._id || m)?.toString() === currentUserId?.toString()
           )
 
           return (
             <div
               key={g._id}
-              className="border border-gray-800 bg-[#0d0d0d] rounded-xl p-5 hover:bg-[#101010]"
+              onClick={() => onGroupClick?.(g._id)} // 🔥 CLICK GROUP
+              className="border border-gray-800 bg-[#0d0d0d] rounded-xl p-5 hover:bg-[#101010] cursor-pointer"
             >
 
               <div className="flex items-start justify-between gap-4">
@@ -201,21 +210,21 @@ export default function StudyGroupsPage() {
                   <div className="mt-3 flex items-center gap-4 text-sm text-gray-400">
                     <span className="flex items-center gap-2">
                       <Users className="w-4 h-4" />
-                      {g.members.length} members
+                      {members.length} members
                     </span>
                   </div>
                 </div>
 
                 {isMember ? (
                   <button
-                    onClick={() => handleLeave(g._id)}
+                    onClick={(e) => handleLeave(e, g._id)}
                     className="px-4 py-2 bg-gray-600 rounded-lg text-sm"
                   >
                     Leave
                   </button>
                 ) : (
                   <button
-                    onClick={() => handleJoin(g._id)}
+                    onClick={(e) => handleJoin(e, g._id)}
                     className="px-4 py-2 bg-[#ff5757] rounded-lg text-sm"
                   >
                     Join

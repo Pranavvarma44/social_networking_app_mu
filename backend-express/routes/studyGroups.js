@@ -24,6 +24,39 @@ router.post("/", requireAuth, async (req, res) => {
   }
 });
 
+router.get("/:id", requireAuth, async (req, res) => {
+    try {
+      const group = await StudyGroup.findById(req.params.id)
+        .populate("members", "name email")
+        .populate("createdBy", "name")
+  
+      res.json(group)
+    } catch (err) {
+      res.status(500).json({ error: "Fetch group failed" })
+    }
+  })
+
+  router.post("/:id/remove", requireAuth, async (req, res) => {
+    try {
+      const { userId } = req.body
+  
+      const group = await StudyGroup.findById(req.params.id)
+  
+      if (group.createdBy.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ error: "Not authorized" })
+      }
+  
+      group.members = group.members.filter(
+        (m) => m.toString() !== userId
+      )
+  
+      await group.save()
+  
+      res.json(group)
+    } catch {
+      res.status(500).json({ error: "Remove failed" })
+    }
+  })
 
 // ================= GET ALL =================
 router.get("/", async (req, res) => {
