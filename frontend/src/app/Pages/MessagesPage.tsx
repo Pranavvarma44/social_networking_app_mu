@@ -66,7 +66,7 @@ export default function MessagesPage() {
     console.log("FETCHING CHAT USERS...")
 
     axios
-      .get(`${BASE_URL}/api/users/chat-eligible`, {
+      .get(`${BASE_URL}/api/users/chat-user`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
