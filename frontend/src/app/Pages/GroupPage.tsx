@@ -8,14 +8,12 @@ export default function GroupPage({ groupId, onBack }: any) {
   const [group, setGroup] = useState<any>(null)
   const [messages, setMessages] = useState<any[]>([])
   const [text, setText] = useState("")
+  const [showMembers, setShowMembers] = useState(false)
 
   const socketRef = useRef<any>(null)
-  const roomRef = useRef<string | null>(null)
-  const bottomRef = useRef<HTMLDivElement | null>(null)
 
   const token = localStorage.getItem("token")
 
-  // 🔐 CURRENT USER
   let currentUserId: string | null = null
   try {
     if (token) {
@@ -23,39 +21,6 @@ export default function GroupPage({ groupId, onBack }: any) {
       currentUserId = payload._id || payload.userId
     }
   } catch {}
-
-  const room = groupId
-
-  // ================= CHECK MEMBER =================
-  const isMember = group?.members?.some(
-    (m: any) => (m._id || m).toString() === currentUserId
-  )
-
-  // ================= SOCKET =================
-  useEffect(() => {
-    if (!token) return
-
-    socketRef.current = createSocket(token)
-    const socket = socketRef.current
-
-    socket.on("receive_message", (msg: any) => {
-      setMessages((prev) => {
-        if (prev.some((m) => m._id === msg._id)) return prev
-        return [...prev, msg]
-      })
-    })
-
-    return () => socket.disconnect()
-  }, [token])
-
-  // ================= JOIN ROOM =================
-  useEffect(() => {
-    if (!room || !isMember) return
-
-    roomRef.current = room
-    socketRef.current?.emit("join_room", room)
-
-  }, [room, isMember])
 
   // ================= FETCH GROUP =================
   const fetchGroup = async () => {
@@ -74,7 +39,7 @@ export default function GroupPage({ groupId, onBack }: any) {
   const fetchMessages = async () => {
     try {
       const res = await axios.get(
-        `${BASE_URL}/api/messages/group/${groupId}`,
+        `${BASE_URL}/api/group-messages/${groupId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       )
       setMessages(res.data)
@@ -84,153 +49,216 @@ export default function GroupPage({ groupId, onBack }: any) {
   }
 
   useEffect(() => {
-    if (!groupId || !token) return
+    if (!groupId) return
     fetchGroup()
     fetchMessages()
   }, [groupId])
 
-  // ================= JOIN GROUP =================
-  const handleJoin = async () => {
-    try {
-      await axios.post(
-        `${BASE_URL}/api/study-groups/${groupId}/join`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
+  // ================= SOCKET =================
+  useEffect(() => {
+    if (!token) return
 
-      fetchGroup()
-    } catch (err) {
-      console.error(err)
+    const socket = createSocket(token)
+    socketRef.current = socket
+
+    socket.emit("join_room", groupId)
+
+    socket.on("receive_group_message", (msg: any) => {
+      setMessages((prev) => [...prev, msg])
+    })
+
+    return () => {
+      socket.disconnect()
     }
-  }
-
-  // ================= LEAVE GROUP =================
-  const handleLeave = async () => {
-    try {
-      await axios.post(
-        `${BASE_URL}/api/study-groups/${groupId}/leave`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
-
-      fetchGroup()
-    } catch (err) {
-      console.error(err)
-    }
-  }
+  }, [groupId])
 
   // ================= SEND =================
   const sendMessage = () => {
-    if (!text.trim() || !room || !isMember) return
+    if (!text.trim()) return
 
-    socketRef.current.emit("send_message", {
-      room,
+    socketRef.current.emit("send_group_message", {
+      groupId,
       text,
-      type: "group",
     })
 
     setText("")
   }
 
-  // ================= AUTO SCROLL =================
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages])
-
-  if (!group) {
-    return <div className="p-6 text-gray-400">Loading...</div>
+  // ================= JOIN =================
+  const handleJoin = async () => {
+    await axios.post(
+      `${BASE_URL}/api/study-groups/${groupId}/join`,
+      {},
+      { headers: { Authorization: `Bearer ${token}` } }
+    )
+    fetchGroup()
   }
 
+  // ================= LEAVE =================
+  const handleLeave = async () => {
+    await axios.post(
+      `${BASE_URL}/api/study-groups/${groupId}/leave`,
+      {},
+      { headers: { Authorization: `Bearer ${token}` } }
+    )
+    fetchGroup()
+  }
+
+  // ================= KICK =================
+  const handleKick = async (userId: string) => {
+    await axios.post(
+      `${BASE_URL}/api/study-groups/${groupId}/kick`,
+      { userId },
+      { headers: { Authorization: `Bearer ${token}` } }
+    )
+    fetchGroup()
+  }
+
+  const isMember = group?.members?.some(
+    (m: any) => (m._id || m) === currentUserId
+  )
+
+  const isAdmin =
+    group?.createdBy?._id?.toString() === currentUserId?.toString()
+
+  if (!group) return <div className="p-6 text-gray-400">Loading...</div>
+
   return (
-    <div className="p-6 max-w-3xl mx-auto flex flex-col h-[calc(100vh-4rem)]">
+    <div className="flex flex-col h-[calc(100vh-4rem)]">
 
-      {/* HEADER */}
-      <div className="mb-4 border-b border-gray-800 pb-3 flex justify-between items-center">
-
-        <button onClick={onBack} className="text-gray-400">
-          ← Back
-        </button>
+      {/* ================= HEADER ================= */}
+      <div className="p-4 border-b border-gray-800 flex justify-between items-center">
 
         <div>
-          <h2 className="text-lg font-semibold">{group.name}</h2>
-          <p className="text-xs text-gray-400">
-            {group.members?.length} members
-          </p>
+          <h2 className="text-xl font-semibold">{group.name}</h2>
+          <p className="text-sm text-gray-400">{group.subject}</p>
         </div>
 
-        {/* JOIN / LEAVE */}
-        {isMember ? (
+        <div className="flex gap-2">
+
           <button
-            onClick={handleLeave}
-            className="bg-gray-600 px-3 py-1 rounded text-sm"
+            onClick={() => setShowMembers(true)}
+            className="bg-[#1a1a1a] px-3 py-1 rounded text-sm"
           >
-            Leave
+            Members
           </button>
-        ) : (
-          <button
-            onClick={handleJoin}
-            className="bg-[#ff5757] px-3 py-1 rounded text-sm"
-          >
-            Join
-          </button>
-        )}
+
+          {isMember ? (
+            <button
+              onClick={handleLeave}
+              className="bg-gray-600 px-3 py-1 rounded text-sm"
+            >
+              Leave
+            </button>
+          ) : (
+            <button
+              onClick={handleJoin}
+              className="bg-[#ff5757] px-3 py-1 rounded text-sm"
+            >
+              Join
+            </button>
+          )}
+
+        </div>
       </div>
 
       {/* ================= CHAT ================= */}
-      {isMember ? (
-        <>
-          <div className="flex-1 overflow-y-auto space-y-3 pr-2">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
 
-            {messages.map((msg) => {
-              const isMe = msg.sender?._id === currentUserId
+        {messages.map((msg) => {
+
+          const isMe =
+            (msg.sender?._id || msg.sender) === currentUserId
+
+          return (
+            <div
+              key={msg._id}
+              className={`flex ${isMe ? "justify-end" : ""}`}
+            >
+              <div
+                className={`px-4 py-2 rounded ${
+                  isMe ? "bg-[#ff5757]" : "bg-gray-800"
+                }`}
+              >
+                {!isMe && (
+                  <p className="text-xs text-gray-300">
+                    {msg.sender?.name}
+                  </p>
+                )}
+                <p>{msg.text}</p>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* ================= INPUT ================= */}
+      {isMember && (
+        <div className="p-4 border-t border-gray-800 flex gap-2">
+          <input
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            className="flex-1 bg-[#1a1a1a] px-4 py-2 rounded"
+            placeholder="Type message..."
+          />
+
+          <button
+            onClick={sendMessage}
+            className="bg-[#ff5757] px-4 rounded"
+          >
+            Send
+          </button>
+        </div>
+      )}
+
+      {/* ================= MEMBERS MODAL ================= */}
+      {showMembers && (
+        <div
+          className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center"
+          onClick={() => setShowMembers(false)}
+        >
+          <div
+            className="bg-[#111] w-96 max-h-[70vh] rounded-lg p-4 border border-gray-800 overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+
+            {/* HEADER */}
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold">Members</h2>
+
+              <button
+                onClick={() => setShowMembers(false)}
+                className="text-gray-400"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* LIST */}
+            {group.members.map((m: any) => {
+
+              const id = m._id || m
 
               return (
                 <div
-                  key={msg._id}
-                  className={`flex ${isMe ? "justify-end" : ""}`}
+                  key={id}
+                  className="flex justify-between items-center p-2 hover:bg-[#1a1a1a] rounded"
                 >
-                  <div
-                    className={`px-4 py-2 rounded max-w-[70%] text-sm ${
-                      isMe
-                        ? "bg-[#ff5757] text-white"
-                        : "bg-[#1a1a1a] text-gray-300"
-                    }`}
-                  >
-                    {!isMe && (
-                      <div className="text-xs text-gray-400">
-                        {msg.sender?.name}
-                      </div>
-                    )}
+                  <span>{m.name || "User"}</span>
 
-                    <p>{msg.text}</p>
-                  </div>
+                  {isAdmin && id !== currentUserId && (
+                    <button
+                      onClick={() => handleKick(id)}
+                      className="text-xs text-red-400"
+                    >
+                      Kick
+                    </button>
+                  )}
                 </div>
               )
             })}
 
-            <div ref={bottomRef} />
           </div>
-
-          {/* INPUT */}
-          <div className="mt-3 flex gap-2 border-t border-gray-800 pt-3">
-            <input
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="Type message..."
-              className="flex-1 bg-[#1a1a1a] px-3 py-2 rounded outline-none"
-            />
-
-            <button
-              onClick={sendMessage}
-              className="bg-[#ff5757] px-4 rounded hover:bg-[#ff4545]"
-            >
-              Send
-            </button>
-          </div>
-        </>
-      ) : (
-        <div className="flex-1 flex items-center justify-center text-gray-400">
-          Join the group to participate in chat
         </div>
       )}
 

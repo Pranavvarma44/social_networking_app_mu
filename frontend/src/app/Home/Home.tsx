@@ -18,7 +18,7 @@ import OpportunitiesPage from "../Pages/OpportunitiesPage"
 import PostsPage from "../Pages/PostsPage"
 import ProfilePage from "../Pages/ProfilePage"
 import StudyGroupsPage from "../Pages/StudyGroupsPage"
-import GroupPage from "../Pages/GroupPage" // 🔥 NEW
+import GroupPage from "../Pages/GroupPage"
 
 import NotificationsPanel from "../components/NotificationsPanel"
 import RightSidebar from "../components/RightSidebar"
@@ -45,19 +45,19 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
 
   const [userName, setUserName] = useState("")
 
-  // ================= OPEN PROFILE =================
+  // ================= PROFILE =================
   const openProfile = (userId: string) => {
     setProfileUserId(userId)
     setShowProfile(true)
-    setShowGroup(false) // 🔥 reset
+    setShowGroup(false)
     setShowResults(false)
   }
 
-  // ================= OPEN GROUP =================
+  // ================= GROUP =================
   const openGroup = (id: string) => {
     setGroupId(id)
     setShowGroup(true)
-    setShowProfile(false) // 🔥 reset
+    setShowProfile(false)
   }
 
   const handleBackFromProfile = () => setShowProfile(false)
@@ -78,7 +78,7 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
     setShowNotifications((prev) => !prev)
   }
 
-  // ================= USER NAME =================
+  // ================= USER =================
   useEffect(() => {
     const token = localStorage.getItem("token")
     if (!token) return
@@ -102,7 +102,9 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
         const res = await axios.get(`${BASE_URL}/api/users?search=${search}`)
         setResults(res.data.users)
         setShowResults(true)
-      } catch {}
+      } catch (err) {
+        console.error(err)
+      }
     }, 300)
 
     return () => clearTimeout(delay)
@@ -124,7 +126,6 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
   // ================= MAIN =================
   const renderMain = () => {
 
-    // 🔥 GROUP PAGE FIRST
     if (showGroup && groupId) {
       return (
         <GroupPage
@@ -134,7 +135,6 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
       )
     }
 
-    // 🔥 PROFILE PAGE
     if (showProfile) {
       return (
         <ProfilePage
@@ -144,7 +144,6 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
       )
     }
 
-    // 🔥 NORMAL PAGES
     const pages: any = {
       home: <PostsPage onUserClick={openProfile} />,
       messages: <MessagesPage onUserClick={openProfile} />,
@@ -262,5 +261,77 @@ function NavItem({ icon: Icon, label, active, onClick }: any) {
       <Icon className="w-5 h-5" />
       {label}
     </button>
+  )
+}
+
+/* ================= SEARCH USER ITEM ================= */
+function SearchUserItem({ user, openProfile }: any) {
+
+  const token = localStorage.getItem("token")
+
+  let currentUserId: string | null = null
+  try {
+    if (token) {
+      const payload = JSON.parse(atob(token.split(".")[1]))
+      currentUserId = payload._id || payload.userId
+    }
+  } catch {}
+
+  const [isFollowing, setIsFollowing] = useState(false)
+
+  useEffect(() => {
+    if (user.followers) {
+      const found = user.followers.some(
+        (f: any) => (f._id || f).toString() === currentUserId
+      )
+      setIsFollowing(found)
+    }
+  }, [user])
+
+  const handleFollow = async (e: any) => {
+    e.stopPropagation()
+
+    await axios.post(
+      `${BASE_URL}/api/users/${user._id}/follow`,
+      {},
+      { headers: { Authorization: `Bearer ${token}` } }
+    )
+
+    setIsFollowing(true)
+  }
+
+  const handleUnfollow = async (e: any) => {
+    e.stopPropagation()
+
+    await axios.delete(
+      `${BASE_URL}/api/users/${user._id}/unfollow`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    )
+
+    setIsFollowing(false)
+  }
+
+  return (
+    <div
+      onClick={() => openProfile(user._id)}
+      className="flex justify-between p-3 hover:bg-[#1a1a1a] cursor-pointer"
+    >
+      <div>
+        <div>{user.name}</div>
+        <div className="text-xs text-gray-400">{user.email}</div>
+      </div>
+
+      {currentUserId !== user._id && (
+        isFollowing ? (
+          <button onClick={handleUnfollow} className="text-xs bg-gray-600 px-2 rounded">
+            Unfollow
+          </button>
+        ) : (
+          <button onClick={handleFollow} className="text-xs bg-[#ff5757] px-2 rounded">
+            Follow
+          </button>
+        )
+      )}
+    </div>
   )
 }
