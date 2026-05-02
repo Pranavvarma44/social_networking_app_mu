@@ -12,7 +12,9 @@ import userRoutes from "./routes/userRoutes.js";
 import opportunityRoutes from "./routes/opportunityRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
 import postRoutes from "./routes/postRoutes.js";
+import conversationRoutes from "./routes/conversationRoutes.js";
 import jwt from "jsonwebtoken";
+
 
 
 
@@ -32,6 +34,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/opportunities", opportunityRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/posts",postRoutes);
+app.use("/api/conversations",conversationRoutes);
 
 // DB
 mongoose.connect(process.env.MONGO_URI)
