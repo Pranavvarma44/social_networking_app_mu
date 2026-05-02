@@ -1,195 +1,266 @@
 import React, { useEffect, useState } from "react"
 import axios from "axios"
 import BASE_URL from "../../api"
-import { ArrowLeft, Users } from "lucide-react"
+import {
+  Bell,
+  Briefcase,
+  Calendar,
+  Home as HomeIcon,
+  LogOut,
+  MessageCircle,
+  Search,
+  Users,
+} from "lucide-react"
 
-interface Props {
-  groupId: string
-  onBack: () => void
+import EventsPage from "../Pages/EventsPage"
+import MessagesPage from "../Pages/MessagesPage"
+import OpportunitiesPage from "../Pages/OpportunitiesPage"
+import PostsPage from "../Pages/PostsPage"
+import ProfilePage from "../Pages/ProfilePage"
+import StudyGroupsPage from "../Pages/StudyGroupsPage"
+import GroupPage from "../Pages/GroupPage" // 🔥 NEW
+
+import NotificationsPanel from "../components/NotificationsPanel"
+import RightSidebar from "../components/RightSidebar"
+
+interface HomeProps {
+  setIsAuthenticated: (value: boolean) => void
 }
 
-export default function GroupPage({ groupId, onBack }: Props) {
+export default function Home({ setIsAuthenticated }: HomeProps) {
 
-  const token = localStorage.getItem("token")
+  const [activeTab, setActiveTab] = useState("home")
 
-  const [group, setGroup] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
+  const [showProfile, setShowProfile] = useState(false)
+  const [profileUserId, setProfileUserId] = useState<string | null>(null)
 
-  // ================= CURRENT USER =================
-  let currentUserId: string | null = null
-  try {
-    if (token) {
-      const payload = JSON.parse(atob(token.split(".")[1]))
-      currentUserId = payload._id || payload.userId || payload.id
-    }
-  } catch {}
+  const [showGroup, setShowGroup] = useState(false)
+  const [groupId, setGroupId] = useState<string | null>(null)
 
-  // ================= FETCH GROUP =================
-  const fetchGroup = async () => {
-    try {
-      const res = await axios.get(
-        `${BASE_URL}/api/study-groups/${groupId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      )
+  const [showNotifications, setShowNotifications] = useState(false)
 
-      setGroup(res.data)
-    } catch (err) {
-      console.error("FETCH GROUP ERROR:", err)
-    } finally {
-      setLoading(false)
-    }
+  const [search, setSearch] = useState("")
+  const [results, setResults] = useState<any[]>([])
+  const [showResults, setShowResults] = useState(false)
+
+  const [userName, setUserName] = useState("")
+
+  // ================= OPEN PROFILE =================
+  const openProfile = (userId: string) => {
+    setProfileUserId(userId)
+    setShowProfile(true)
+    setShowGroup(false) // 🔥 reset
+    setShowResults(false)
   }
+
+  // ================= OPEN GROUP =================
+  const openGroup = (id: string) => {
+    setGroupId(id)
+    setShowGroup(true)
+    setShowProfile(false) // 🔥 reset
+  }
+
+  const handleBackFromProfile = () => setShowProfile(false)
+
+  const handleBackFromGroup = () => {
+    setShowGroup(false)
+    setGroupId(null)
+  }
+
+  const handleProfileClick = () => {
+    setProfileUserId(null)
+    setShowProfile(true)
+    setShowGroup(false)
+    setShowNotifications(false)
+  }
+
+  const toggleNotifications = () => {
+    setShowNotifications((prev) => !prev)
+  }
+
+  // ================= USER NAME =================
+  useEffect(() => {
+    const token = localStorage.getItem("token")
+    if (!token) return
+
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]))
+      setUserName(payload.name || "")
+    } catch {}
+  }, [])
+
+  // ================= SEARCH =================
+  useEffect(() => {
+    if (!search.trim()) {
+      setResults([])
+      setShowResults(false)
+      return
+    }
+
+    const delay = setTimeout(async () => {
+      try {
+        const res = await axios.get(`${BASE_URL}/api/users?search=${search}`)
+        setResults(res.data.users)
+        setShowResults(true)
+      } catch {}
+    }, 300)
+
+    return () => clearTimeout(delay)
+  }, [search])
 
   useEffect(() => {
-    fetchGroup()
-  }, [groupId])
+    const close = () => setShowResults(false)
+    document.addEventListener("click", close)
+    return () => document.removeEventListener("click", close)
+  }, [])
 
-  // ================= JOIN =================
-  const handleJoin = async () => {
-    try {
-      await axios.post(
-        `${BASE_URL}/api/study-groups/${groupId}/join`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
+  const getInitials = (name: string) => {
+    if (!name) return "U"
+    const parts = name.trim().split(" ")
+    if (parts.length === 1) return parts[0][0].toUpperCase()
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+  }
+
+  // ================= MAIN =================
+  const renderMain = () => {
+
+    // 🔥 GROUP PAGE FIRST
+    if (showGroup && groupId) {
+      return (
+        <GroupPage
+          groupId={groupId}
+          onBack={handleBackFromGroup}
+        />
       )
-      fetchGroup()
-    } catch (err) {
-      console.error("JOIN ERROR:", err)
     }
-  }
 
-  // ================= LEAVE =================
-  const handleLeave = async () => {
-    try {
-      await axios.post(
-        `${BASE_URL}/api/study-groups/${groupId}/leave`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
+    // 🔥 PROFILE PAGE
+    if (showProfile) {
+      return (
+        <ProfilePage
+          onBack={handleBackFromProfile}
+          userId={profileUserId || undefined}
+        />
       )
-      fetchGroup()
-    } catch (err) {
-      console.error("LEAVE ERROR:", err)
     }
-  }
 
-  // ================= REMOVE MEMBER (ADMIN) =================
-  const handleRemove = async (userId: string) => {
-    try {
-      await axios.post(
-        `${BASE_URL}/api/study-groups/${groupId}/remove`,
-        { userId },
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
-      fetchGroup()
-    } catch (err) {
-      console.error("REMOVE ERROR:", err)
+    // 🔥 NORMAL PAGES
+    const pages: any = {
+      home: <PostsPage onUserClick={openProfile} />,
+      messages: <MessagesPage onUserClick={openProfile} />,
+      events: <EventsPage />,
+      study: <StudyGroupsPage onGroupClick={openGroup} />,
+      opportunities: <OpportunitiesPage />,
     }
+
+    return pages[activeTab]
   }
-
-  if (loading) {
-    return <div className="p-6 text-gray-400">Loading...</div>
-  }
-
-  if (!group) {
-    return <div className="p-6 text-red-400">Group not found</div>
-  }
-
-  const members = group.members || []
-
-  const isMember = members.some(
-    (m: any) =>
-      (m._id || m)?.toString() === currentUserId?.toString()
-  )
-
-  const isAdmin =
-    (group.createdBy?._id || group.createdBy)?.toString() ===
-    currentUserId?.toString()
 
   return (
-    <div className="max-w-2xl mx-auto p-6">
+    <div className="min-h-screen bg-[#0a0a0a] text-white">
 
-      {/* BACK */}
-      <button
-        onClick={onBack}
-        className="flex items-center gap-2 text-gray-400 mb-6"
-      >
-        <ArrowLeft size={16} />
-        Back
-      </button>
+      {/* TOP NAV */}
+      <div className="border-b border-gray-800 sticky top-0 z-50 bg-[#0a0a0a]">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between">
 
-      {/* GROUP HEADER */}
-      <div className="bg-[#111] p-5 rounded-xl border border-gray-800 mb-6">
+          {/* LEFT */}
+          <div className="flex items-center gap-6">
+            <h1 className="text-xl">
+              <span className="text-[#ff5757]">MU</span> SOCIAL.
+            </h1>
 
-        <h2 className="text-2xl font-semibold">{group.name}</h2>
+            <div className="relative" onClick={(e) => e.stopPropagation()}>
+              <Search className="absolute left-3 top-2 w-4 h-4 text-gray-500" />
 
-        <p className="text-gray-400 mt-1">{group.subject}</p>
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search users..."
+                className="pl-10 bg-[#1a1a1a] px-3 py-2 rounded w-80"
+              />
 
-        <p className="text-gray-500 mt-2">{group.description}</p>
+              {showResults && results.length > 0 && (
+                <div className="absolute top-12 w-80 bg-[#111] border border-gray-800 rounded-lg z-50">
+                  {results.map((user) => (
+                    <SearchUserItem
+                      key={user._id}
+                      user={user}
+                      openProfile={openProfile}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
 
-        <div className="flex items-center gap-2 mt-4 text-sm text-gray-400">
-          <Users size={14} />
-          {members.length} members
-        </div>
+          {/* RIGHT */}
+          <div className="flex gap-3 items-center">
 
-        {/* JOIN / LEAVE */}
-        <div className="mt-4">
-          {isMember ? (
-            <button
-              onClick={handleLeave}
-              className="bg-gray-600 px-4 py-2 rounded"
-            >
-              Leave Group
+            <button onClick={toggleNotifications}>
+              <Bell />
             </button>
-          ) : (
+
             <button
-              onClick={handleJoin}
-              className="bg-[#ff5757] px-4 py-2 rounded"
+              onClick={handleProfileClick}
+              className="bg-[#ff5757] w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold"
             >
-              Join Group
+              {getInitials(userName)}
             </button>
-          )}
+
+            <button onClick={() => setIsAuthenticated(false)}>
+              <LogOut />
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* MEMBERS LIST */}
-      <div className="bg-[#111] p-5 rounded-xl border border-gray-800">
+      {/* BODY */}
+      <div className="max-w-7xl mx-auto flex">
 
-        <h3 className="text-lg font-semibold mb-4">Members</h3>
+        {/* SIDEBAR */}
+        <div className="w-64 border-r border-gray-800 min-h-screen sticky top-16 p-6">
+          <nav className="space-y-2">
 
-        <div className="space-y-3">
+            <NavItem icon={HomeIcon} label="Home" active={activeTab === "home"} onClick={() => { setActiveTab("home"); setShowProfile(false); setShowGroup(false) }} />
 
-          {members.map((m: any) => {
+            <NavItem icon={MessageCircle} label="Messages" active={activeTab === "messages"} onClick={() => { setActiveTab("messages"); setShowProfile(false); setShowGroup(false) }} />
 
-            const memberId = (m._id || m).toString()
+            <NavItem icon={Users} label="Study Groups" active={activeTab === "study"} onClick={() => { setActiveTab("study"); setShowProfile(false); setShowGroup(false) }} />
 
-            return (
-              <div
-                key={memberId}
-                className="flex justify-between items-center"
-              >
+            <NavItem icon={Calendar} label="Events" active={activeTab === "events"} onClick={() => { setActiveTab("events"); setShowProfile(false); setShowGroup(false) }} />
 
-                <div>
-                  <p className="text-white">{m.name || "User"}</p>
-                </div>
+            <NavItem icon={Briefcase} label="Opportunities" active={activeTab === "opportunities"} onClick={() => { setActiveTab("opportunities"); setShowProfile(false); setShowGroup(false) }} />
 
-                {/* ADMIN REMOVE */}
-                {isAdmin && memberId !== currentUserId && (
-                  <button
-                    onClick={() => handleRemove(memberId)}
-                    className="text-red-400 text-sm"
-                  >
-                    Remove
-                  </button>
-                )}
+            <NavItem icon={Users} label="Profile" active={showProfile} onClick={handleProfileClick} />
 
-              </div>
-            )
-          })}
-
+          </nav>
         </div>
+
+        {/* MAIN */}
+        <div className="flex-1 border-r border-gray-800">
+          {renderMain()}
+        </div>
+
+        {/* RIGHT SIDEBAR */}
+        {!showProfile && !showGroup && <RightSidebar />}
       </div>
     </div>
+  )
+}
+
+/* NAV ITEM */
+function NavItem({ icon: Icon, label, active, onClick }: any) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-3 w-full px-4 py-3 rounded-lg ${
+        active
+          ? "bg-[#ff5757] text-white"
+          : "text-gray-400 hover:bg-[#1a1a1a]"
+      }`}
+    >
+      <Icon className="w-5 h-5" />
+      {label}
+    </button>
   )
 }
