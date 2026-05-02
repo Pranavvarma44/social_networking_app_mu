@@ -21,17 +21,24 @@ import NotificationsPanel from "../components/NotificationsPanel"
 import RightSidebar from "../components/RightSidebar"
 
 interface HomeProps {
-  isAuthenticated?: boolean
   setIsAuthenticated: (value: boolean) => void
 }
 
 export default function Home({ setIsAuthenticated }: HomeProps) {
   const [activeTab, setActiveTab] = useState("home")
   const [showProfile, setShowProfile] = useState(false)
+  const [profileUserId, setProfileUserId] = useState<string | null>(null)
   const [showNotifications, setShowNotifications] = useState(false)
-  
 
+  // 🔥 OPEN ANY USER PROFILE
+  const openProfile = (userId: string) => {
+    setProfileUserId(userId)
+    setShowProfile(true)
+  }
+
+  // 🔥 OPEN OWN PROFILE
   const handleProfileClick = () => {
+    setProfileUserId(null) // null = own profile
     setShowProfile(true)
     setShowNotifications(false)
   }
@@ -44,33 +51,38 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
     setShowNotifications((prev) => !prev)
   }
 
-  // ✅ CLEANER PAGE RENDER
+  // 🔥 MAIN RENDER LOGIC
   const renderMain = () => {
     if (showProfile) {
-      return <ProfilePage onBack={handleBackFromProfile} />
+      return (
+        <ProfilePage
+          onBack={handleBackFromProfile}
+          userId={profileUserId || undefined}
+        />
+      )
     }
 
     const pages: any = {
-      home: <PostsPage />,
-      messages: <MessagesPage />,
+      home: <PostsPage onUserClick={openProfile} />,
+      messages: <MessagesPage onUserClick={openProfile} />,
       events: <EventsPage />,
       study: <StudyGroupsPage />,
       opportunities: <OpportunitiesPage />,
     }
 
-    return pages[activeTab] || <PostsPage />
+    return pages[activeTab] || <PostsPage onUserClick={openProfile} />
   }
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
 
-      {/* 🔝 TOP NAV */}
+      {/* TOP NAV */}
       <div className="border-b border-gray-800 bg-[#0a0a0a] sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
 
           {/* LOGO + SEARCH */}
           <div className="flex items-center gap-8">
-            <h1 className="text-xl flex items-center gap-2">
+            <h1 className="text-xl">
               <span className="text-[#ff5757]">MU</span> SOCIAL.
             </h1>
 
@@ -87,18 +99,17 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
           {/* RIGHT ACTIONS */}
           <div className="flex items-center gap-4">
 
-            {/* 🔔 NOTIFICATIONS */}
+            {/* NOTIFICATIONS */}
             <div className="relative">
               <button
                 onClick={toggleNotifications}
-                className={`relative p-2 rounded-full transition-colors ${
+                className={`p-2 rounded-full ${
                   showNotifications
                     ? "bg-[#ff5757]/20"
                     : "hover:bg-[#1a1a1a]"
                 }`}
               >
                 <Bell className="w-5 h-5" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-[#ff5757] rounded-full"></span>
               </button>
 
               {showNotifications && (
@@ -108,20 +119,18 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
               )}
             </div>
 
-            {/* 👤 PROFILE AVATAR */}
+            {/* PROFILE AVATAR */}
             <button
               onClick={handleProfileClick}
-              title="View Profile"
-              className="w-8 h-8 bg-[#ff5757] rounded-full flex items-center justify-center text-sm hover:ring-2 hover:ring-[#ff5757]/60 transition-all"
+              className="w-8 h-8 bg-[#ff5757] rounded-full flex items-center justify-center"
             >
               JD
             </button>
 
-            {/* 🚪 LOGOUT */}
+            {/* LOGOUT */}
             <button
               onClick={() => setIsAuthenticated(false)}
-              className="p-2 hover:bg-[#1a1a1a] rounded-full transition-colors"
-              title="Logout"
+              className="p-2 hover:bg-[#1a1a1a] rounded-full"
             >
               <LogOut className="w-5 h-5" />
             </button>
@@ -129,9 +138,10 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
         </div>
       </div>
 
+      {/* MAIN LAYOUT */}
       <div className="max-w-7xl mx-auto flex">
 
-        {/* 📌 LEFT SIDEBAR */}
+        {/* SIDEBAR */}
         <div className="w-64 border-r border-gray-800 min-h-screen sticky top-16 p-6">
           <nav className="space-y-2">
 
@@ -185,50 +195,34 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
               }}
             />
 
-            {/* ⭐ OPTIONAL PROFILE SIDEBAR */}
             <NavItem
               icon={Users}
               label="Profile"
               active={showProfile}
-              onClick={() => {
-                setShowProfile(true)
-                setShowNotifications(false)
-              }}
+              onClick={handleProfileClick}
             />
 
           </nav>
         </div>
 
-        {/* 🧠 MAIN CONTENT */}
+        {/* MAIN */}
         <div className="flex-1 border-r border-gray-800">
           {renderMain()}
         </div>
 
-        {/* 👉 RIGHT SIDEBAR */}
+        {/* RIGHT SIDEBAR */}
         {!showProfile && <RightSidebar />}
       </div>
     </div>
   )
 }
 
-/* =========================
-   NAV ITEM COMPONENT
-========================= */
-function NavItem({
-  icon: Icon,
-  label,
-  active,
-  onClick,
-}: {
-  icon: any
-  label: string
-  active?: boolean
-  onClick?: () => void
-}) {
+/* NAV ITEM */
+function NavItem({ icon: Icon, label, active, onClick }: any) {
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-3 w-full px-4 py-3 rounded-lg transition-colors ${
+      className={`flex items-center gap-3 w-full px-4 py-3 rounded-lg ${
         active
           ? "bg-[#ff5757] text-white"
           : "text-gray-400 hover:bg-[#1a1a1a] hover:text-white"
