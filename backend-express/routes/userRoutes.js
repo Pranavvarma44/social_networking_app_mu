@@ -12,20 +12,74 @@ router.get("/me", requireAuth, async (req, res) => {
 });
 
 router.get("/chat-user",requireAuth,async(req,res)=>{
-  try{
-    const user=await User.findById(req.user._id).populate("following","name email").populate("followers","name email");
-    const usermap=new Map();
-    user.following.forEach(u=>usermap.set(u._id.toString(),u));
-    user.followers.forEach(u=>usermap.set(u._id.toString(),u));
+  try {
 
-    const chatUsers=Array.from(usermap.values());
+    const currentUserId = req.user._id;
+
+    // 🔹 Get current user with followers + following
+
+    const user = await User.findById(currentUserId)
+
+      .populate("followers", "name email role")
+
+      .populate("following", "name email role");
+
+    // 🔹 Get all faculty users
+
+    const facultyUsers = await User.find({ role: "faculty" })
+
+      .select("name email role");
+
+    //  Merge all users (remove duplicates)
+
+    const usersMap = new Map();
+
+    // followers
+
+    user.followers.forEach(u => {
+
+      if (u._id.toString() !== currentUserId.toString()) {
+
+        usersMap.set(u._id.toString(), u);
+
+      }
+
+    });
+
+    // following
+
+    user.following.forEach(u => {
+
+      if (u._id.toString() !== currentUserId.toString()) {
+
+        usersMap.set(u._id.toString(), u);
+
+      }
+
+    });
+
+    // faculty (always allowed)
+
+    facultyUsers.forEach(u => {
+
+      if (u._id.toString() !== currentUserId.toString()) {
+
+        usersMap.set(u._id.toString(), u);
+
+      }
+
+    });
+
+    const chatUsers = Array.from(usersMap.values());
+
     res.json(chatUsers);
 
+  } catch (err) {
 
-
-  }catch(error){
     console.error("CHAT USERS ERROR:", err);
+
     res.status(500).json({ error: "Failed to fetch users" });
+
   }
 })
 
