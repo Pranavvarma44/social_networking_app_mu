@@ -191,10 +191,21 @@ export default function MessagesPage() {
             <h2 className="text-xl">Messages</h2>
 
             <button
-              onClick={() => setShowNewChat(true)}
-              className="bg-red-500 px-3 py-1 rounded text-sm"
+
+            onClick={() => {
+
+              console.log("CLICKED NEW CHAT")
+
+              setShowNewChat(true)
+
+            }}
+
+            className="bg-red-500 px-3 py-1 rounded text-sm"
+
             >
-              + New
+
+            + New
+
             </button>
           </div>
 
