@@ -21,24 +21,25 @@ import NotificationsPanel from "../components/NotificationsPanel"
 import RightSidebar from "../components/RightSidebar"
 
 interface HomeProps {
+  isAuthenticated?: boolean
   setIsAuthenticated: (value: boolean) => void
 }
 
 export default function Home({ setIsAuthenticated }: HomeProps) {
   const [activeTab, setActiveTab] = useState("home")
   const [showProfile, setShowProfile] = useState(false)
-  const [profileUserId, setProfileUserId] = useState<string | null>(null)
   const [showNotifications, setShowNotifications] = useState(false)
+  const [profileUserId, setProfileUserId] = useState<string | null>(null)
 
-  // 🔥 OPEN ANY USER PROFILE
   const openProfile = (userId: string) => {
+
     setProfileUserId(userId)
+  
     setShowProfile(true)
+  
   }
 
-  // 🔥 OPEN OWN PROFILE
   const handleProfileClick = () => {
-    setProfileUserId(null) // null = own profile
     setShowProfile(true)
     setShowNotifications(false)
   }
@@ -51,88 +52,218 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
     setShowNotifications((prev) => !prev)
   }
 
+  // ✅ CLEANER PAGE RENDER
   const renderMain = () => {
+
     if (showProfile) {
+  
       return (
+  
         <ProfilePage
+  
           onBack={handleBackFromProfile}
+  
           userId={profileUserId || undefined}
+  
         />
+  
       )
+  
     }
-
+  
     const pages: any = {
+  
       home: <PostsPage onUserClick={openProfile} />,
+  
       messages: <MessagesPage />,
+  
       events: <EventsPage />,
+  
       study: <StudyGroupsPage />,
+  
       opportunities: <OpportunitiesPage />,
+  
     }
-
+  
     return pages[activeTab] || <PostsPage onUserClick={openProfile} />
+  
   }
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
 
-      {/* TOP BAR */}
-      <div className="border-b border-gray-800 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between">
+      {/* 🔝 TOP NAV */}
+      <div className="border-b border-gray-800 bg-[#0a0a0a] sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
 
-          <div className="flex items-center gap-6">
-            <h1 className="text-xl">
+          {/* LOGO + SEARCH */}
+          <div className="flex items-center gap-8">
+            <h1 className="text-xl flex items-center gap-2">
               <span className="text-[#ff5757]">MU</span> SOCIAL.
             </h1>
 
             <div className="relative">
-              <Search className="absolute left-3 top-2 text-gray-500 w-4 h-4" />
-              <input className="pl-10 bg-[#1a1a1a] rounded px-3 py-1" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+              <input
+                type="text"
+                placeholder="Search MU Social..."
+                className="bg-[#1a1a1a] border border-gray-800 rounded-full pl-10 pr-4 py-2 w-80 text-sm focus:outline-none focus:border-[#ff5757]"
+              />
             </div>
           </div>
 
-          <div className="flex gap-3">
+          {/* RIGHT ACTIONS */}
+          <div className="flex items-center gap-4">
 
-            <button onClick={toggleNotifications}>
-              <Bell />
-            </button>
+            {/* 🔔 NOTIFICATIONS */}
+            <div className="relative">
+              <button
+                onClick={toggleNotifications}
+                className={`relative p-2 rounded-full transition-colors ${
+                  showNotifications
+                    ? "bg-[#ff5757]/20"
+                    : "hover:bg-[#1a1a1a]"
+                }`}
+              >
+                <Bell className="w-5 h-5" />
+                <span className="absolute top-1 right-1 w-2 h-2 bg-[#ff5757] rounded-full"></span>
+              </button>
 
-            <button onClick={handleProfileClick} className="bg-red-500 w-8 h-8 rounded-full">
+              {showNotifications && (
+                <NotificationsPanel
+                  onClose={() => setShowNotifications(false)}
+                />
+              )}
+            </div>
+
+            {/* 👤 PROFILE AVATAR */}
+            <button
+              onClick={handleProfileClick}
+              title="View Profile"
+              className="w-8 h-8 bg-[#ff5757] rounded-full flex items-center justify-center text-sm hover:ring-2 hover:ring-[#ff5757]/60 transition-all"
+            >
               JD
             </button>
 
-            <button onClick={() => setIsAuthenticated(false)}>
-              <LogOut />
+            {/* 🚪 LOGOUT */}
+            <button
+              onClick={() => setIsAuthenticated(false)}
+              className="p-2 hover:bg-[#1a1a1a] rounded-full transition-colors"
+              title="Logout"
+            >
+              <LogOut className="w-5 h-5" />
             </button>
           </div>
         </div>
       </div>
 
-      <div className="flex">
+      <div className="max-w-7xl mx-auto flex">
 
-        {/* SIDEBAR */}
-        <div className="w-64 p-4">
-          <NavItem label="Home" onClick={() => setActiveTab("home")} />
-          <NavItem label="Messages" onClick={() => setActiveTab("messages")} />
-          <NavItem label="Events" onClick={() => setActiveTab("events")} />
-          <NavItem label="Study" onClick={() => setActiveTab("study")} />
-          <NavItem label="Opportunities" onClick={() => setActiveTab("opportunities")} />
+        {/* 📌 LEFT SIDEBAR */}
+        <div className="w-64 border-r border-gray-800 min-h-screen sticky top-16 p-6">
+          <nav className="space-y-2">
+
+            <NavItem
+              icon={HomeIcon}
+              label="Home"
+              active={activeTab === "home" && !showProfile}
+              onClick={() => {
+                setActiveTab("home")
+                setShowProfile(false)
+              }}
+            />
+
+            <NavItem
+              icon={MessageCircle}
+              label="Messages"
+              active={activeTab === "messages" && !showProfile}
+              onClick={() => {
+                setActiveTab("messages")
+                setShowProfile(false)
+              }}
+            />
+
+            <NavItem
+              icon={Users}
+              label="Study Groups"
+              active={activeTab === "study" && !showProfile}
+              onClick={() => {
+                setActiveTab("study")
+                setShowProfile(false)
+              }}
+            />
+
+            <NavItem
+              icon={Calendar}
+              label="Events"
+              active={activeTab === "events" && !showProfile}
+              onClick={() => {
+                setActiveTab("events")
+                setShowProfile(false)
+              }}
+            />
+
+            <NavItem
+              icon={Briefcase}
+              label="Opportunities"
+              active={activeTab === "opportunities" && !showProfile}
+              onClick={() => {
+                setActiveTab("opportunities")
+                setShowProfile(false)
+              }}
+            />
+
+            {/* ⭐ OPTIONAL PROFILE SIDEBAR */}
+            <NavItem
+              icon={Users}
+              label="Profile"
+              active={showProfile}
+              onClick={() => {
+                setShowProfile(true)
+                setShowNotifications(false)
+              }}
+            />
+
+          </nav>
         </div>
 
-        {/* MAIN */}
-        <div className="flex-1">
+        {/* 🧠 MAIN CONTENT */}
+        <div className="flex-1 border-r border-gray-800">
           {renderMain()}
         </div>
 
+        {/* 👉 RIGHT SIDEBAR */}
         {!showProfile && <RightSidebar />}
       </div>
     </div>
   )
 }
 
-function NavItem({ label, onClick }: any) {
+/* =========================
+   NAV ITEM COMPONENT
+========================= */
+function NavItem({
+  icon: Icon,
+  label,
+  active,
+  onClick,
+}: {
+  icon: any
+  label: string
+  active?: boolean
+  onClick?: () => void
+}) {
   return (
-    <button onClick={onClick} className="block py-2">
-      {label}
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-3 w-full px-4 py-3 rounded-lg transition-colors ${
+        active
+          ? "bg-[#ff5757] text-white"
+          : "text-gray-400 hover:bg-[#1a1a1a] hover:text-white"
+      }`}
+    >
+      <Icon className="w-5 h-5" />
+      <span>{label}</span>
     </button>
   )
 }
