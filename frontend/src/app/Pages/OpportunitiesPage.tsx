@@ -4,6 +4,7 @@ import BASE_URL from "../../api"
 import { Briefcase, MapPin } from "lucide-react"
 
 export default function OpportunitiesPage() {
+
   const [data, setData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -17,18 +18,30 @@ export default function OpportunitiesPage() {
     type: "internship",
   })
 
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState<any>({})
+
+  const [currentUser, setCurrentUser] = useState<any>(null)
+
   const token = localStorage.getItem("token")
+
+  // ================= GET USER =================
+  useEffect(() => {
+    if (!token) return
+
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]))
+      setCurrentUser(payload)
+    } catch {}
+  }, [])
 
   // ================= FETCH =================
   const fetchData = async () => {
     try {
       setLoading(true)
 
-      const res = await axios.get(
-        `${BASE_URL}/api/opportunities?limit=20`
-      )
+      const res = await axios.get(`${BASE_URL}/api/opportunities?limit=20`)
 
-      // 🔥 IMPORTANT FIX
       setData(res.data.opportunities)
 
     } catch (err) {
@@ -67,8 +80,45 @@ export default function OpportunitiesPage() {
 
     } catch (err: any) {
       console.error(err)
-
       alert(err.response?.data?.error || "Error creating opportunity")
+    }
+  }
+
+  // ================= EDIT =================
+  const handleEdit = async (id: string) => {
+    try {
+      await axios.put(
+        `${BASE_URL}/api/opportunities/${id}`,
+        editForm,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      )
+
+      setEditingId(null)
+      fetchData()
+
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  // ================= DELETE =================
+  const handleDelete = async (id: string) => {
+    if (!window.confirm("Delete this opportunity?")) return
+
+    try {
+      await axios.delete(
+        `${BASE_URL}/api/opportunities/${id}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      )
+
+      fetchData()
+
+    } catch (err) {
+      console.error(err)
     }
   }
 
@@ -87,7 +137,7 @@ export default function OpportunitiesPage() {
         </button>
       </div>
 
-      {/* FORM */}
+      {/* CREATE FORM */}
       {showForm && (
         <div className="bg-[#111] p-4 rounded mb-6 space-y-3 border border-gray-800">
 
@@ -163,38 +213,111 @@ export default function OpportunitiesPage() {
         <p className="text-gray-400">Loading...</p>
       ) : (
         <div className="space-y-4">
-          {data.map((item) => (
-            <div
-              key={item._id}
-              className="bg-[#111] p-4 rounded border border-gray-800"
-            >
-              <div className="flex justify-between">
-                <h3 className="font-semibold text-lg">
-                  {item.title}
-                </h3>
 
-                <span className="text-xs text-gray-400">
-                  {item.type}
-                </span>
+          {data.map((item) => {
+
+            const isOwner =
+              item.postedBy === currentUser?._id ||
+              item.postedBy?._id === currentUser?._id ||
+              currentUser?.role === "admin"
+
+            return (
+              <div
+                key={item._id}
+                className="bg-[#111] p-4 rounded border border-gray-800"
+              >
+
+                {editingId === item._id ? (
+                  <div className="space-y-2">
+
+                    <input
+                      value={editForm.title}
+                      onChange={(e) =>
+                        setEditForm({ ...editForm, title: e.target.value })
+                      }
+                      className="w-full bg-[#1a1a1a] p-2 rounded"
+                    />
+
+                    <textarea
+                      value={editForm.description}
+                      onChange={(e) =>
+                        setEditForm({ ...editForm, description: e.target.value })
+                      }
+                      className="w-full bg-[#1a1a1a] p-2 rounded"
+                    />
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleEdit(item._id)}
+                        className="bg-green-500 px-3 py-1 rounded"
+                      >
+                        Save
+                      </button>
+
+                      <button
+                        onClick={() => setEditingId(null)}
+                        className="bg-gray-600 px-3 py-1 rounded"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex justify-between">
+                      <h3 className="font-semibold text-lg">
+                        {item.title}
+                      </h3>
+
+                      <span className="text-xs text-gray-400">
+                        {item.type}
+                      </span>
+                    </div>
+
+                    <p className="text-gray-300 text-sm mt-2">
+                      {item.description}
+                    </p>
+
+                    <div className="flex justify-between mt-3">
+
+                      <div className="flex gap-4 text-sm text-gray-400">
+                        <span className="flex items-center gap-1">
+                          <Briefcase size={14} />
+                          {item.company}
+                        </span>
+
+                        <span className="flex items-center gap-1">
+                          <MapPin size={14} />
+                          {item.location || "Remote"}
+                        </span>
+                      </div>
+
+                      {isOwner && (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              setEditingId(item._id)
+                              setEditForm(item)
+                            }}
+                            className="text-blue-400 text-sm"
+                          >
+                            Edit
+                          </button>
+
+                          <button
+                            onClick={() => handleDelete(item._id)}
+                            className="text-red-400 text-sm"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
-
-              <p className="text-gray-300 text-sm mt-2">
-                {item.description}
-              </p>
-
-              <div className="flex gap-4 text-sm text-gray-400 mt-3">
-                <span className="flex items-center gap-1">
-                  <Briefcase size={14} />
-                  {item.company}
-                </span>
-
-                <span className="flex items-center gap-1">
-                  <MapPin size={14} />
-                  {item.location || "Remote"}
-                </span>
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>
