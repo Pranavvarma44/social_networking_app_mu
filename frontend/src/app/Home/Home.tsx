@@ -21,24 +21,25 @@ import NotificationsPanel from "../components/NotificationsPanel"
 import RightSidebar from "../components/RightSidebar"
 
 interface HomeProps {
+  isAuthenticated?: boolean
   setIsAuthenticated: (value: boolean) => void
 }
 
 export default function Home({ setIsAuthenticated }: HomeProps) {
   const [activeTab, setActiveTab] = useState("home")
   const [showProfile, setShowProfile] = useState(false)
-  const [profileUserId, setProfileUserId] = useState<string | null>(null)
   const [showNotifications, setShowNotifications] = useState(false)
+  const [profileUserId, setProfileUserId] = useState<string | null>(null)
 
-  // 🔥 OPEN OTHER USER PROFILE
   const openProfile = (userId: string) => {
+
     setProfileUserId(userId)
+  
     setShowProfile(true)
+  
   }
 
-  // 🔥 OPEN OWN PROFILE
   const handleProfileClick = () => {
-    setProfileUserId(null)
     setShowProfile(true)
     setShowNotifications(false)
   }
@@ -51,67 +52,81 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
     setShowNotifications((prev) => !prev)
   }
 
-  // 🔥 MAIN RENDER
+  // ✅ CLEANER PAGE RENDER
   const renderMain = () => {
-    if (showProfile) {
-      return (
-        <ProfilePage
-          onBack={handleBackFromProfile}
-          userId={profileUserId || undefined}
-        />
-      )
-    }
 
-    switch (activeTab) {
-      case "messages":
-        return <MessagesPage />
-      case "events":
-        return <EventsPage />
-      case "study":
-        return <StudyGroupsPage />
-      case "opportunities":
-        return <OpportunitiesPage />
-      default:
-        return <PostsPage onUserClick={openProfile} />
+    if (showProfile) {
+  
+      return (
+  
+        <ProfilePage
+  
+          onBack={handleBackFromProfile}
+  
+          userId={profileUserId || undefined}
+  
+        />
+  
+      )
+  
     }
+  
+    const pages: any = {
+  
+      home: <PostsPage onUserClick={openProfile} />,
+  
+      messages: <MessagesPage />,
+  
+      events: <EventsPage />,
+  
+      study: <StudyGroupsPage />,
+  
+      opportunities: <OpportunitiesPage />,
+  
+    }
+  
+    return pages[activeTab] || <PostsPage onUserClick={openProfile} />
+  
   }
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
 
       {/* 🔝 TOP NAV */}
-      <div className="border-b border-gray-800 sticky top-0 z-50 bg-[#0a0a0a]">
+      <div className="border-b border-gray-800 bg-[#0a0a0a] sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
 
           {/* LOGO + SEARCH */}
           <div className="flex items-center gap-8">
-            <h1 className="text-xl">
+            <h1 className="text-xl flex items-center gap-2">
               <span className="text-[#ff5757]">MU</span> SOCIAL.
             </h1>
 
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
               <input
+                type="text"
                 placeholder="Search MU Social..."
                 className="bg-[#1a1a1a] border border-gray-800 rounded-full pl-10 pr-4 py-2 w-80 text-sm focus:outline-none focus:border-[#ff5757]"
               />
             </div>
           </div>
 
-          {/* RIGHT SIDE */}
+          {/* RIGHT ACTIONS */}
           <div className="flex items-center gap-4">
 
             {/* 🔔 NOTIFICATIONS */}
             <div className="relative">
               <button
                 onClick={toggleNotifications}
-                className={`p-2 rounded-full ${
+                className={`relative p-2 rounded-full transition-colors ${
                   showNotifications
                     ? "bg-[#ff5757]/20"
                     : "hover:bg-[#1a1a1a]"
                 }`}
               >
                 <Bell className="w-5 h-5" />
+                <span className="absolute top-1 right-1 w-2 h-2 bg-[#ff5757] rounded-full"></span>
               </button>
 
               {showNotifications && (
@@ -121,10 +136,11 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
               )}
             </div>
 
-            {/* 👤 PROFILE */}
+            {/* 👤 PROFILE AVATAR */}
             <button
               onClick={handleProfileClick}
-              className="w-8 h-8 bg-[#ff5757] rounded-full flex items-center justify-center"
+              title="View Profile"
+              className="w-8 h-8 bg-[#ff5757] rounded-full flex items-center justify-center text-sm hover:ring-2 hover:ring-[#ff5757]/60 transition-all"
             >
               JD
             </button>
@@ -132,7 +148,8 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
             {/* 🚪 LOGOUT */}
             <button
               onClick={() => setIsAuthenticated(false)}
-              className="p-2 hover:bg-[#1a1a1a] rounded-full"
+              className="p-2 hover:bg-[#1a1a1a] rounded-full transition-colors"
+              title="Logout"
             >
               <LogOut className="w-5 h-5" />
             </button>
@@ -140,7 +157,6 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
         </div>
       </div>
 
-      {/* MAIN LAYOUT */}
       <div className="max-w-7xl mx-auto flex">
 
         {/* 📌 LEFT SIDEBAR */}
@@ -153,7 +169,7 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
               active={activeTab === "home" && !showProfile}
               onClick={() => {
                 setActiveTab("home")
-                setShowProfile(false) // 🔥 FIX
+                setShowProfile(false)
               }}
             />
 
@@ -163,7 +179,7 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
               active={activeTab === "messages" && !showProfile}
               onClick={() => {
                 setActiveTab("messages")
-                setShowProfile(false) // 🔥 FIX
+                setShowProfile(false)
               }}
             />
 
@@ -173,7 +189,7 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
               active={activeTab === "study" && !showProfile}
               onClick={() => {
                 setActiveTab("study")
-                setShowProfile(false) // 🔥 FIX
+                setShowProfile(false)
               }}
             />
 
@@ -183,7 +199,7 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
               active={activeTab === "events" && !showProfile}
               onClick={() => {
                 setActiveTab("events")
-                setShowProfile(false) // 🔥 FIX
+                setShowProfile(false)
               }}
             />
 
@@ -193,20 +209,25 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
               active={activeTab === "opportunities" && !showProfile}
               onClick={() => {
                 setActiveTab("opportunities")
-                setShowProfile(false) // 🔥 FIX
+                setShowProfile(false)
               }}
             />
 
+            {/* ⭐ OPTIONAL PROFILE SIDEBAR */}
             <NavItem
               icon={Users}
               label="Profile"
               active={showProfile}
-              onClick={handleProfileClick}
+              onClick={() => {
+                setShowProfile(true)
+                setShowNotifications(false)
+              }}
             />
+
           </nav>
         </div>
 
-        {/* 🧠 MAIN */}
+        {/* 🧠 MAIN CONTENT */}
         <div className="flex-1 border-r border-gray-800">
           {renderMain()}
         </div>
@@ -218,7 +239,9 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
   )
 }
 
-/* NAV ITEM */
+/* =========================
+   NAV ITEM COMPONENT
+========================= */
 function NavItem({
   icon: Icon,
   label,
@@ -233,7 +256,7 @@ function NavItem({
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-3 w-full px-4 py-3 rounded-lg ${
+      className={`flex items-center gap-3 w-full px-4 py-3 rounded-lg transition-colors ${
         active
           ? "bg-[#ff5757] text-white"
           : "text-gray-400 hover:bg-[#1a1a1a] hover:text-white"
