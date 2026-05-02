@@ -216,10 +216,9 @@ export default function OpportunitiesPage() {
 
           {data.map((item) => {
 
-            const isOwner =
-              item.postedBy === currentUser?._id ||
-              item.postedBy?._id === currentUser?._id ||
-              currentUser?.role === "admin"
+            const currentUserId = currentUser?._id || currentUser?.userId
+
+            const isOwner = item.postedBy?._id === currentUserId ||currentUser?.role === "admin"
 
             return (
               <div

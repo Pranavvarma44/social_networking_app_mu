@@ -55,10 +55,15 @@ router.get("/", async (req, res) => {
           ? { createdAt: 1 }
           : { createdAt: -1 };
   
-      const opportunities = await Opportunity.find(query)
-        .sort(sortOption)
-        .skip((page - 1) * limit)
-        .limit(Number(limit));
+          const opportunities = await Opportunity.find(query)
+
+          .populate("postedBy", "_id name role") // 🔥 ADD THIS
+        
+          .sort(sortOption)
+        
+          .skip((page - 1) * limit)
+        
+          .limit(Number(limit));
   
       const total = await Opportunity.countDocuments(query);
   
@@ -98,10 +103,11 @@ router.post("/", requireAuth, async (req, res) => {
       type,
       postedBy: req.user._id,
     });
+    const populated = await opportunity.populate("postedBy", "_id name role");
 
     res.status(201).json({
       message: "Opportunity created",
-      opportunity,
+      opportunity:populated,
     });
 
   } catch (error) {
@@ -123,7 +129,7 @@ router.put("/:id", requireAuth, async (req, res) => {
   
      
       if (
-        opportunity.postedBy.toString() !== req.user.id &&
+        opportunity.postedBy.toString() !== req.user._id.toString() &&
         req.user.role !== "admin"
       ) {
         return res.status(403).json({ error: "Not authorized" });
@@ -136,6 +142,7 @@ router.put("/:id", requireAuth, async (req, res) => {
       opportunity.type = type || opportunity.type;
   
       await opportunity.save();
+      await opportunity.populate("postedBy", "_id name role");
   
       res.json({
         message: "Opportunity updated",
