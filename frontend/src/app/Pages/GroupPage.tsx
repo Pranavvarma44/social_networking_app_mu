@@ -1,52 +1,95 @@
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import axios from "axios"
 import BASE_URL from "../../api"
-import { ArrowLeft, Users } from "lucide-react"
+import { createSocket } from "../../socket"
 
-interface Props {
-  groupId: string
-  onBack: () => void
-}
+export default function GroupPage({ groupId, onBack }: any) {
 
-export default function GroupPage({ groupId, onBack }: Props) {
+  const [group, setGroup] = useState<any>(null)
+  const [messages, setMessages] = useState<any[]>([])
+  const [text, setText] = useState("")
+
+  const socketRef = useRef<any>(null)
+  const roomRef = useRef<string | null>(null)
+  const bottomRef = useRef<HTMLDivElement | null>(null)
 
   const token = localStorage.getItem("token")
 
-  const [group, setGroup] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-
-  // ================= CURRENT USER =================
+  // 🔐 CURRENT USER
   let currentUserId: string | null = null
   try {
     if (token) {
       const payload = JSON.parse(atob(token.split(".")[1]))
-      currentUserId = payload._id || payload.userId || payload.id
+      currentUserId = payload._id || payload.userId
     }
   } catch {}
+
+  const room = groupId
+
+  // ================= CHECK MEMBER =================
+  const isMember = group?.members?.some(
+    (m: any) => (m._id || m).toString() === currentUserId
+  )
+
+  // ================= SOCKET =================
+  useEffect(() => {
+    if (!token) return
+
+    socketRef.current = createSocket(token)
+    const socket = socketRef.current
+
+    socket.on("receive_message", (msg: any) => {
+      setMessages((prev) => {
+        if (prev.some((m) => m._id === msg._id)) return prev
+        return [...prev, msg]
+      })
+    })
+
+    return () => socket.disconnect()
+  }, [token])
+
+  // ================= JOIN ROOM =================
+  useEffect(() => {
+    if (!room || !isMember) return
+
+    roomRef.current = room
+    socketRef.current?.emit("join_room", room)
+
+  }, [room, isMember])
 
   // ================= FETCH GROUP =================
   const fetchGroup = async () => {
     try {
       const res = await axios.get(
         `${BASE_URL}/api/study-groups/${groupId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       )
-
       setGroup(res.data)
     } catch (err) {
-      console.error("FETCH GROUP ERROR:", err)
-    } finally {
-      setLoading(false)
+      console.error(err)
+    }
+  }
+
+  // ================= FETCH MESSAGES =================
+  const fetchMessages = async () => {
+    try {
+      const res = await axios.get(
+        `${BASE_URL}/api/messages/group/${groupId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      setMessages(res.data)
+    } catch (err) {
+      console.error(err)
     }
   }
 
   useEffect(() => {
+    if (!groupId || !token) return
     fetchGroup()
+    fetchMessages()
   }, [groupId])
 
-  // ================= JOIN =================
+  // ================= JOIN GROUP =================
   const handleJoin = async () => {
     try {
       await axios.post(
@@ -54,13 +97,14 @@ export default function GroupPage({ groupId, onBack }: Props) {
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       )
+
       fetchGroup()
     } catch (err) {
-      console.error("JOIN ERROR:", err)
+      console.error(err)
     }
   }
 
-  // ================= LEAVE =================
+  // ================= LEAVE GROUP =================
   const handleLeave = async () => {
     try {
       await axios.post(
@@ -68,128 +112,128 @@ export default function GroupPage({ groupId, onBack }: Props) {
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       )
+
       fetchGroup()
     } catch (err) {
-      console.error("LEAVE ERROR:", err)
+      console.error(err)
     }
   }
 
-  // ================= REMOVE MEMBER (ADMIN) =================
-  const handleRemove = async (userId: string) => {
-    try {
-      await axios.post(
-        `${BASE_URL}/api/study-groups/${groupId}/remove`,
-        { userId },
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
-      fetchGroup()
-    } catch (err) {
-      console.error("REMOVE ERROR:", err)
-    }
+  // ================= SEND =================
+  const sendMessage = () => {
+    if (!text.trim() || !room || !isMember) return
+
+    socketRef.current.emit("send_message", {
+      room,
+      text,
+      type: "group",
+    })
+
+    setText("")
   }
 
-  if (loading) {
+  // ================= AUTO SCROLL =================
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [messages])
+
+  if (!group) {
     return <div className="p-6 text-gray-400">Loading...</div>
   }
 
-  if (!group) {
-    return <div className="p-6 text-red-400">Group not found</div>
-  }
-
-  const members = group.members || []
-
-  const isMember = members.some(
-    (m: any) =>
-      (m._id || m)?.toString() === currentUserId?.toString()
-  )
-
-  const isAdmin =
-    (group.createdBy?._id || group.createdBy)?.toString() ===
-    currentUserId?.toString()
-
   return (
-    <div className="max-w-2xl mx-auto p-6">
+    <div className="p-6 max-w-3xl mx-auto flex flex-col h-[calc(100vh-4rem)]">
 
-      {/* BACK */}
-      <button
-        onClick={onBack}
-        className="flex items-center gap-2 text-gray-400 mb-6"
-      >
-        <ArrowLeft size={16} />
-        Back
-      </button>
+      {/* HEADER */}
+      <div className="mb-4 border-b border-gray-800 pb-3 flex justify-between items-center">
 
-      {/* GROUP HEADER */}
-      <div className="bg-[#111] p-5 rounded-xl border border-gray-800 mb-6">
+        <button onClick={onBack} className="text-gray-400">
+          ← Back
+        </button>
 
-        <h2 className="text-2xl font-semibold">{group.name}</h2>
-
-        <p className="text-gray-400 mt-1">{group.subject}</p>
-
-        <p className="text-gray-500 mt-2">{group.description}</p>
-
-        <div className="flex items-center gap-2 mt-4 text-sm text-gray-400">
-          <Users size={14} />
-          {members.length} members
+        <div>
+          <h2 className="text-lg font-semibold">{group.name}</h2>
+          <p className="text-xs text-gray-400">
+            {group.members?.length} members
+          </p>
         </div>
 
         {/* JOIN / LEAVE */}
-        <div className="mt-4">
-          {isMember ? (
-            <button
-              onClick={handleLeave}
-              className="bg-gray-600 px-4 py-2 rounded"
-            >
-              Leave Group
-            </button>
-          ) : (
-            <button
-              onClick={handleJoin}
-              className="bg-[#ff5757] px-4 py-2 rounded"
-            >
-              Join Group
-            </button>
-          )}
-        </div>
+        {isMember ? (
+          <button
+            onClick={handleLeave}
+            className="bg-gray-600 px-3 py-1 rounded text-sm"
+          >
+            Leave
+          </button>
+        ) : (
+          <button
+            onClick={handleJoin}
+            className="bg-[#ff5757] px-3 py-1 rounded text-sm"
+          >
+            Join
+          </button>
+        )}
       </div>
 
-      {/* MEMBERS LIST */}
-      <div className="bg-[#111] p-5 rounded-xl border border-gray-800">
+      {/* ================= CHAT ================= */}
+      {isMember ? (
+        <>
+          <div className="flex-1 overflow-y-auto space-y-3 pr-2">
 
-        <h3 className="text-lg font-semibold mb-4">Members</h3>
+            {messages.map((msg) => {
+              const isMe = msg.sender?._id === currentUserId
 
-        <div className="space-y-3">
-
-          {members.map((m: any) => {
-
-            const memberId = (m._id || m).toString()
-
-            return (
-              <div
-                key={memberId}
-                className="flex justify-between items-center"
-              >
-
-                <div>
-                  <p className="text-white">{m.name || "User"}</p>
-                </div>
-
-                {/* ADMIN REMOVE */}
-                {isAdmin && memberId !== currentUserId && (
-                  <button
-                    onClick={() => handleRemove(memberId)}
-                    className="text-red-400 text-sm"
+              return (
+                <div
+                  key={msg._id}
+                  className={`flex ${isMe ? "justify-end" : ""}`}
+                >
+                  <div
+                    className={`px-4 py-2 rounded max-w-[70%] text-sm ${
+                      isMe
+                        ? "bg-[#ff5757] text-white"
+                        : "bg-[#1a1a1a] text-gray-300"
+                    }`}
                   >
-                    Remove
-                  </button>
-                )}
+                    {!isMe && (
+                      <div className="text-xs text-gray-400">
+                        {msg.sender?.name}
+                      </div>
+                    )}
 
-              </div>
-            )
-          })}
+                    <p>{msg.text}</p>
+                  </div>
+                </div>
+              )
+            })}
 
+            <div ref={bottomRef} />
+          </div>
+
+          {/* INPUT */}
+          <div className="mt-3 flex gap-2 border-t border-gray-800 pt-3">
+            <input
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Type message..."
+              className="flex-1 bg-[#1a1a1a] px-3 py-2 rounded outline-none"
+            />
+
+            <button
+              onClick={sendMessage}
+              className="bg-[#ff5757] px-4 rounded hover:bg-[#ff4545]"
+            >
+              Send
+            </button>
+          </div>
+        </>
+      ) : (
+        <div className="flex-1 flex items-center justify-center text-gray-400">
+          Join the group to participate in chat
         </div>
-      </div>
+      )}
+
     </div>
   )
 }

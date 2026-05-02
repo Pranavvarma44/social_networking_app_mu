@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 
 const MessageSchema = new mongoose.Schema({
   room: String,
+  group: { type: mongoose.Schema.Types.ObjectId, ref: "StudyGroup" },
 
   sender: {
     type: mongoose.Schema.Types.ObjectId,
