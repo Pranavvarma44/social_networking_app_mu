@@ -8,6 +8,7 @@ export default function GroupPage({ groupId, onBack }: any) {
   const [group, setGroup] = useState<any>(null)
   const [messages, setMessages] = useState<any[]>([])
   const [text, setText] = useState("")
+  const [showMembers, setShowMembers] = useState(false)
 
   const socketRef = useRef<any>(null)
   const bottomRef = useRef<HTMLDivElement | null>(null)
@@ -35,7 +36,6 @@ export default function GroupPage({ groupId, onBack }: any) {
     const socket = createSocket(token)
     socketRef.current = socket
 
-    // ✅ GROUP RECEIVE
     socket.on("receive_group_message", (msg: any) => {
       setMessages((prev) => {
         if (prev.some((m) => m._id === msg._id)) return prev
@@ -43,19 +43,13 @@ export default function GroupPage({ groupId, onBack }: any) {
       })
     })
 
-    return () => {
-      if (socket) {
-        socket.disconnect()
-      }
-    }
+    return () => socket.disconnect()
   }, [token])
 
   // ================= JOIN GROUP ROOM =================
   useEffect(() => {
     if (!groupId || !isMember) return
-
     socketRef.current?.emit("join_group", groupId)
-
   }, [groupId, isMember])
 
   // ================= FETCH GROUP =================
@@ -90,7 +84,7 @@ export default function GroupPage({ groupId, onBack }: any) {
     fetchMessages()
   }, [groupId])
 
-  // ================= JOIN GROUP =================
+  // ================= JOIN =================
   const handleJoin = async () => {
     try {
       await axios.post(
@@ -104,7 +98,7 @@ export default function GroupPage({ groupId, onBack }: any) {
     }
   }
 
-  // ================= LEAVE GROUP =================
+  // ================= LEAVE =================
   const handleLeave = async () => {
     try {
       await axios.post(
@@ -118,7 +112,7 @@ export default function GroupPage({ groupId, onBack }: any) {
     }
   }
 
-  // ================= SEND MESSAGE =================
+  // ================= SEND =================
   const sendMessage = () => {
     if (!text.trim() || !groupId || !isMember) return
 
@@ -149,9 +143,14 @@ export default function GroupPage({ groupId, onBack }: any) {
           ← Back
         </button>
 
-        <div>
+        <div className="text-center">
           <h2 className="text-lg font-semibold">{group.name}</h2>
-          <p className="text-xs text-gray-400">
+
+          {/* 🔥 CLICKABLE MEMBERS */}
+          <p
+            onClick={() => setShowMembers(true)}
+            className="text-xs text-gray-400 cursor-pointer hover:underline"
+          >
             {group.members?.length} members
           </p>
         </div>
@@ -228,6 +227,44 @@ export default function GroupPage({ groupId, onBack }: any) {
       ) : (
         <div className="flex-1 flex items-center justify-center text-gray-400">
           Join the group to participate in chat
+        </div>
+      )}
+
+      {/* ================= MEMBERS MODAL ================= */}
+      {showMembers && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+
+          <div className="bg-[#111] w-80 max-h-[70vh] rounded-xl p-4 border border-gray-800 overflow-y-auto">
+
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg">Members</h2>
+              <button
+                onClick={() => setShowMembers(false)}
+                className="text-gray-400"
+              >
+                ✕
+              </button>
+            </div>
+
+            {group.members?.map((m: any) => (
+              <div
+                key={m._id || m}
+                className="flex justify-between items-center p-2 rounded hover:bg-[#1a1a1a]"
+              >
+                <span>
+                  {m.name || "User"}
+                  {group.createdBy === (m._id || m) && (
+                    <span className="text-xs text-[#ff5757] ml-1">(Admin)</span>
+                  )}
+                </span>
+              </div>
+            ))}
+
+            {group.members?.length === 0 && (
+              <p className="text-gray-400 text-sm">No members</p>
+            )}
+
+          </div>
         </div>
       )}
 
