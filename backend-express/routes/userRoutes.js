@@ -14,71 +14,47 @@ router.get("/me", requireAuth, async (req, res) => {
 router.get("/chat-user",requireAuth,async(req,res)=>{
   try {
 
-    const currentUserId = req.user._id;
-
-    // 🔹 Get current user with followers + following
-
-    const user = await User.findById(currentUserId)
+    const user = await User.findById(req.user._id)
 
       .populate("followers", "name email role")
 
       .populate("following", "name email role");
 
-    // 🔹 Get all faculty users
+    if (!user) {
 
-    const facultyUsers = await User.find({ role: "faculty" })
+      return res.status(404).json({ error: "User not found" });
 
-      .select("name email role");
-
-    //  Merge all users (remove duplicates)
+    }
 
     const usersMap = new Map();
 
-    // followers
+    // ✅ SAFE ACCESS
 
-    user.followers.forEach(u => {
+    const followers = user.followers || [];
 
-      if (u._id.toString() !== currentUserId.toString()) {
+    const following = user.following || [];
 
-        usersMap.set(u._id.toString(), u);
+    followers.forEach((u) => {
 
-      }
-
-    });
-
-    // following
-
-    user.following.forEach(u => {
-
-      if (u._id.toString() !== currentUserId.toString()) {
-
-        usersMap.set(u._id.toString(), u);
-
-      }
+      usersMap.set(u._id.toString(), u);
 
     });
 
-    // faculty (always allowed)
+    following.forEach((u) => {
 
-    facultyUsers.forEach(u => {
-
-      if (u._id.toString() !== currentUserId.toString()) {
-
-        usersMap.set(u._id.toString(), u);
-
-      }
+      usersMap.set(u._id.toString(), u);
 
     });
 
-    const chatUsers = Array.from(usersMap.values());
+    const result = Array.from(usersMap.values());
 
-    res.json(chatUsers);
+    res.json(result);
 
   } catch (err) {
 
-    console.error("CHAT USERS ERROR:", err);
+    console.error("CHAT ELIGIBLE ERROR:", err);
 
-    res.status(500).json({ error: "Failed to fetch users" });
+    res.status(500).json({ error: "Server error" });
 
   }
 })
