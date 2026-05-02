@@ -338,63 +338,71 @@ export default function PostsPage({
 
           {openComments === post._id && (
 
-            <div className="mt-4 bg-[#111] p-3 rounded-lg">
+        <div className="mt-4 bg-[#111] p-3 rounded-lg space-y-3">
 
-              {/* INPUT */}
+          {/* 🧾 COMMENTS LIST FIRST */}
 
-              <div className="flex gap-2 mb-3">
+          {(comments[post._id] || []).length === 0 ? (
 
-                <input
+            <p className="text-gray-500 text-sm">No comments yet</p>
 
-                  value={commentText}
+          ) : (
 
-                  onChange={(e) => setCommentText(e.target.value)}
+            (comments[post._id] || []).map((c) => (
 
-                  placeholder="Write a comment..."
+              <div key={c._id} className="text-sm">
 
-                  className="flex-1 bg-[#1a1a1a] px-3 py-1 rounded text-sm"
+                <span className="font-medium text-white">
 
-                />
+                  {c.author?.name}
 
-                <button
+                </span>
 
-                  onClick={() => submitComment(post._id)}
+                <span className="text-gray-400 ml-2">
 
-                  className="bg-[#ff5757] px-3 rounded text-sm"
+                  {c.content}
 
-                >
-
-                  Send
-
-                </button>
+                </span>
 
               </div>
 
-              {/* LIST */}
-
-              {(comments[post._id] || []).map((c) => (
-
-                <div key={c._id} className="text-sm mb-2">
-
-                  <span className="font-medium text-white">
-
-                    {c.author?.name}
-
-                  </span>
-
-                  <span className="text-gray-400 ml-2">
-
-                    {c.content}
-
-                  </span>
-
-                </div>
-
-              ))}
-
-            </div>
+            ))
 
           )}
+
+          {/* ✏️ INPUT BELOW */}
+
+          <div className="flex gap-2 pt-2 border-t border-gray-800">
+
+            <input
+
+              value={commentText}
+
+              onChange={(e) => setCommentText(e.target.value)}
+
+              placeholder="Write a comment..."
+
+              className="flex-1 bg-[#1a1a1a] px-3 py-2 rounded text-sm outline-none"
+
+            />
+
+            <button
+
+              onClick={() => submitComment(post._id)}
+
+              className="bg-[#ff5757] px-4 py-2 rounded text-sm hover:bg-[#ff4545]"
+
+            >
+
+              Send
+
+            </button>
+
+          </div>
+
+        </div>
+
+        )}
 
         </div>
 
