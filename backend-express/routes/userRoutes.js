@@ -62,23 +62,7 @@ router.get("/", async (req, res) => {
     }
   });
 
-  router.get("/chat-user",requireAuth,async(req,res)=>{
-    try{
-      const user=await User.findById(req.user._id).populate("following","name email").populate("followers","name email");
-      const usermap=new Map();
-      user.following.forEach(u=>usermap.set(u._id.toString(),u));
-      user.followers.forEach(u=>usermap.set(u._id.toString(),u));
 
-      const chatUsers=Array.from(usermap.values());
-      res.json(chatUsers);
-
-
-
-    }catch(error){
-      console.error("CHAT USERS ERROR:", err);
-      res.status(500).json({ error: "Failed to fetch users" });
-    }
-  })
 
 router.post("/:id/follow", requireAuth, async (req, res) => {
     try {
