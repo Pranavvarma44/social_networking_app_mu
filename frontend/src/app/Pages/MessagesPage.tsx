@@ -25,7 +25,6 @@ export default function MessagesPage() {
 
   const token = localStorage.getItem("token")
 
-  // 🔐 Decode token
   let currentUserId: string | null = null
   try {
     if (token) {
@@ -44,14 +43,10 @@ export default function MessagesPage() {
 
   // ================= FETCH CONVERSATIONS =================
   const fetchConversations = async () => {
-    try {
-      const res = await axios.get(`${BASE_URL}/api/conversations`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      setConversations(res.data)
-    } catch (err) {
-      console.error(err)
-    }
+    const res = await axios.get(`${BASE_URL}/api/conversations`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    setConversations(res.data)
   }
 
   useEffect(() => {
@@ -59,15 +54,15 @@ export default function MessagesPage() {
     fetchConversations()
   }, [token])
 
-  // ================= FETCH USERS (for new chat) =================
+  // ================= FETCH USERS =================
   useEffect(() => {
     if (!token || !showNewChat) return
 
     axios
-      .get(`${BASE_URL}/api/users/chat-user`, {
+      .get(`${BASE_URL}/api/users/chat-eligible`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-      .then((res) => setAllUsers(res.data.users || res.data))
+      .then((res) => setAllUsers(res.data))
       .catch(console.error)
 
   }, [showNewChat])
@@ -84,10 +79,33 @@ export default function MessagesPage() {
     })
 
     socket.on("receive_message", (msg: any) => {
+
       setMessages((prev) => {
         if (prev.some((m) => m._id === msg._id)) return prev
         return [...prev, msg]
       })
+
+      // ✅ DELIVERED
+      socket.emit("message_delivered", {
+        messageId: msg._id,
+        room: msg.room,
+      })
+
+      // ✅ SEEN
+      if (msg.room === roomRef.current) {
+        socket.emit("message_seen", {
+          messageId: msg._id,
+        })
+      }
+    })
+
+    // ✅ STATUS LISTENER (IMPORTANT)
+    socket.on("message_status", ({ messageId, status }: any) => {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m._id === messageId ? { ...m, status } : m
+        )
+      )
     })
 
     socket.on("online_users", setOnlineUsers)
@@ -99,6 +117,7 @@ export default function MessagesPage() {
     socket.on("stop_typing", () => setTypingUserId(null))
 
     return () => socket.disconnect()
+
   }, [token, currentUserId])
 
   // ================= LOAD MESSAGES =================
@@ -142,27 +161,21 @@ export default function MessagesPage() {
 
   // ================= START CHAT =================
   const startChat = async (user: any) => {
-    try {
-      const res = await axios.post(
-        `${BASE_URL}/api/conversations/start/${user._id}`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
+    const res = await axios.post(
+      `${BASE_URL}/api/conversations/start/${user._id}`,
+      {},
+      { headers: { Authorization: `Bearer ${token}` } }
+    )
 
-      const convo = res.data
+    const convo = res.data
 
-      setSelectedConversation(convo)
-      setSelectedUser(user)
-      setShowNewChat(false)
+    setSelectedConversation(convo)
+    setSelectedUser(user)
+    setShowNewChat(false)
 
-      fetchConversations()
-
-    } catch (err) {
-      console.error(err)
-    }
+    fetchConversations()
   }
 
-  // ================= HELPER =================
   const getOtherUser = (participants: any[]) => {
     return participants.find((p) => p._id !== currentUserId)
   }
@@ -174,7 +187,6 @@ export default function MessagesPage() {
       <div className="w-80 border-r border-gray-800 flex flex-col">
 
         <div className="p-4 border-b border-gray-800">
-
           <div className="flex justify-between items-center mb-3">
             <h2 className="text-xl">Messages</h2>
 
@@ -193,12 +205,9 @@ export default function MessagesPage() {
         </div>
 
         <div className="flex-1 overflow-y-auto">
-
           {conversations.map((conv) => {
             const user = getOtherUser(conv.participants)
             if (!user) return null
-
-            const isOnline = onlineUsers.includes(user._id)
 
             return (
               <button
@@ -209,12 +218,7 @@ export default function MessagesPage() {
                 }}
                 className="w-full p-4 flex items-center gap-3 hover:bg-[#1a1a1a]"
               >
-                <div className="relative text-2xl">
-                  👤
-                  {isOnline && (
-                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full"></div>
-                  )}
-                </div>
+                <div className="text-2xl">👤</div>
 
                 <div className="flex-1 text-left">
                   <div className="font-medium">{user.name}</div>
@@ -225,17 +229,15 @@ export default function MessagesPage() {
               </button>
             )
           })}
-
         </div>
       </div>
 
-      {/* CHAT AREA */}
+      {/* CHAT */}
       {selectedUser ? (
         <div className="flex-1 flex flex-col">
 
-          <div className="p-4 border-b border-gray-800 flex justify-between">
-            <span>{selectedUser.name}</span>
-            {typingUserId && <span className="text-gray-400 text-sm">Typing...</span>}
+          <div className="p-4 border-b border-gray-800">
+            {selectedUser.name}
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
@@ -245,7 +247,15 @@ export default function MessagesPage() {
               return (
                 <div key={msg._id} className={`flex ${isMe ? "justify-end" : ""}`}>
                   <div className={`px-4 py-2 rounded ${isMe ? "bg-red-500" : "bg-gray-800"}`}>
-                    {msg.text}
+                    <p>{msg.text}</p>
+
+                    {isMe && (
+                      <span className="text-xs text-gray-300">
+                        {msg.status === "sent" && "✓"}
+                        {msg.status === "delivered" && "✓✓"}
+                        {msg.status === "seen" && "✓✓ (Seen)"}
+                      </span>
+                    )}
                   </div>
                 </div>
               )
@@ -257,7 +267,6 @@ export default function MessagesPage() {
               value={text}
               onChange={handleTyping}
               className="flex-1 bg-[#1a1a1a] px-4 py-2 rounded"
-              placeholder="Type a message..."
             />
             <button onClick={sendMessage} className="bg-red-500 px-4 rounded">
               Send
@@ -267,34 +276,6 @@ export default function MessagesPage() {
       ) : (
         <div className="flex-1 flex items-center justify-center text-gray-500">
           Select a chat
-        </div>
-      )}
-
-      {/* NEW CHAT MODAL */}
-      {showNewChat && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center">
-          <div className="bg-[#111] w-96 max-h-[70vh] overflow-y-auto rounded-lg p-4">
-
-            <h2 className="text-lg mb-4">Start New Chat</h2>
-
-            {allUsers.map((user) => (
-              <button
-                key={user._id}
-                onClick={() => startChat(user)}
-                className="w-full text-left p-3 hover:bg-[#1a1a1a] rounded"
-              >
-                {user.name}
-              </button>
-            ))}
-
-            <button
-              onClick={() => setShowNewChat(false)}
-              className="mt-4 w-full bg-gray-700 py-2 rounded"
-            >
-              Cancel
-            </button>
-
-          </div>
         </div>
       )}
     </div>
