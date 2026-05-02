@@ -252,6 +252,37 @@ export default function ProfilePage({ onBack, userId }: ProfilePageProps) {
         {posts.map((post) => (
           <div key={post._id} className="border border-gray-800 p-4 mb-3 rounded">
             <p>{post.content}</p>
+            {post.media?.length > 0 && (
+
+              <div className="mt-3">
+
+                {post.media[0].type === "image" ? (
+
+                  <img
+
+                    src={post.media[0].url}
+
+                    className="rounded-lg max-h-96"
+
+                  />
+
+                ) : (
+
+                  <video
+
+                    src={post.media[0].url}
+
+                    controls
+
+                    className="rounded-lg max-h-96"
+
+                  />
+
+                )}
+
+              </div>
+
+              )}
 
             <div className="flex gap-4 mt-2 text-gray-400 text-sm">
               <span>❤️ {post.likesCount || 0}</span>
