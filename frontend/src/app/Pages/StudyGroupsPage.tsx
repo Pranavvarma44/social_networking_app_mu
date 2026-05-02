@@ -28,7 +28,14 @@ export default function StudyGroupsPage() {
   // ================= FETCH =================
   const fetchGroups = async () => {
     try {
-      const res = await axios.get(`${BASE_URL}/api/study-groups`)
+      const res = await axios.get(`${BASE_URL}/api/study-groups`,
+        {
+          headers: {
+      
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      )
       setGroups(res.data)
     } catch (err) {
       console.error(err)
