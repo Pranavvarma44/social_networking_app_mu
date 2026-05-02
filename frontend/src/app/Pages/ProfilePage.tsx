@@ -7,6 +7,7 @@ import {
   Check,
   X,
   ArrowLeft,
+  MessageSquare,
 } from "lucide-react"
 
 interface ProfilePageProps {
@@ -18,16 +19,13 @@ export default function ProfilePage({ onBack, userId }: ProfilePageProps) {
 
   const token = localStorage.getItem("token")
 
-  // 🔐 CURRENT USER
   let currentUserId: string | null = null
   try {
     if (token) {
       const payload = JSON.parse(atob(token.split(".")[1]))
       currentUserId = payload._id || payload.userId || payload.id
     }
-  } catch {
-    localStorage.removeItem("token")
-  }
+  } catch {}
 
   const profileId = userId || currentUserId
   const isOwnProfile = profileId === currentUserId
@@ -39,35 +37,28 @@ export default function ProfilePage({ onBack, userId }: ProfilePageProps) {
   const [editingName, setEditingName] = useState(false)
   const [nameInput, setNameInput] = useState("")
 
+  // 🔥 COMMENTS STATE
+  const [openComments, setOpenComments] = useState<string | null>(null)
+  const [comments, setComments] = useState<{ [key: string]: any[] }>({})
+  const [commentText, setCommentText] = useState<{ [key: string]: string }>({})
+
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // ================= FETCH =================
   const fetchProfile = async () => {
-    try {
-      const res = await axios.get(`${BASE_URL}/api/users/${profileId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-
-      setUser(res.data.user)
-      setNameInput(res.data.user.name)
-      setProfilePic(res.data.user.profilePic || null)
-
-    } catch (err) {
-      console.error("PROFILE ERROR:", err)
-    }
+    const res = await axios.get(`${BASE_URL}/api/users/${profileId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    setUser(res.data.user)
+    setNameInput(res.data.user.name)
+    setProfilePic(res.data.user.profilePic || null)
   }
 
   const fetchPosts = async () => {
-    try {
-      const res = await axios.get(`${BASE_URL}/api/posts/user/${profileId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-
-      setPosts(res.data)
-
-    } catch (err) {
-      console.error("POST ERROR:", err)
-    }
+    const res = await axios.get(`${BASE_URL}/api/posts/user/${profileId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    setPosts(res.data)
   }
 
   useEffect(() => {
@@ -78,89 +69,84 @@ export default function ProfilePage({ onBack, userId }: ProfilePageProps) {
 
   // ================= FOLLOW =================
   const handleFollow = async () => {
-    try {
-      await axios.post(
-        `${BASE_URL}/api/users/${profileId}/follow`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
-      fetchProfile()
-    } catch (err) {
-      console.error(err)
-    }
+    await axios.post(
+      `${BASE_URL}/api/users/${profileId}/follow`,
+      {},
+      { headers: { Authorization: `Bearer ${token}` } }
+    )
+    fetchProfile()
   }
 
   const handleUnfollow = async () => {
-    try {
-      await axios.delete(
-        `${BASE_URL}/api/users/${profileId}/unfollow`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
-      fetchProfile()
-    } catch (err) {
-      console.error(err)
-    }
+    await axios.delete(
+      `${BASE_URL}/api/users/${profileId}/unfollow`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    )
+    fetchProfile()
   }
 
-  // 🔥 FIXED FOLLOW CHECK
   const isFollowing = user?.followers?.some(
     (f: any) =>
       (typeof f === "string" ? f : f._id)?.toString() === currentUserId?.toString()
   )
 
-  // ================= PROFILE PIC =================
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+  // ================= COMMENTS =================
+  const fetchComments = async (postId: string) => {
+    const res = await axios.get(
+      `${BASE_URL}/api/posts/${postId}/comments`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    )
 
-    const reader = new FileReader()
-    reader.onload = (ev) => {
-      if (ev.target?.result) setProfilePic(ev.target.result as string)
-    }
-    reader.readAsDataURL(file)
+    setComments((prev) => ({
+      ...prev,
+      [postId]: res.data,
+    }))
   }
 
-  // ================= NAME =================
-  const saveName = () => {
-    setEditingName(false)
-    // optional API
+  const submitComment = async (postId: string) => {
+    const text = commentText[postId]
+    if (!text?.trim()) return
+
+    const res = await axios.post(
+      `${BASE_URL}/api/posts/${postId}/comments`,
+      { content: text },
+      { headers: { Authorization: `Bearer ${token}` } }
+    )
+
+    setComments((prev) => ({
+      ...prev,
+      [postId]: [...(prev[postId] || []), res.data],
+    }))
+
+    setCommentText((prev) => ({
+      ...prev,
+      [postId]: "",
+    }))
   }
 
-  const cancelName = () => {
-    setNameInput(user?.name || "")
-    setEditingName(false)
-  }
-
-  if (!user) {
-    return <div className="p-6 text-gray-400">Loading...</div>
-  }
+  if (!user) return <div className="p-6 text-gray-400">Loading...</div>
 
   return (
     <div className="max-w-2xl mx-auto p-6">
 
       {/* BACK */}
-      <button
-        onClick={onBack}
-        className="flex items-center gap-2 text-gray-400 mb-6"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Back
+      <button onClick={onBack} className="flex gap-2 text-gray-400 mb-6">
+        <ArrowLeft size={16} /> Back
       </button>
 
-      {/* PROFILE CARD */}
-      <div className="bg-[#0d0d0d] border border-gray-800 rounded-2xl overflow-hidden mb-6">
+      {/* PROFILE */}
+      <div className="bg-[#0d0d0d] border border-gray-800 rounded-2xl mb-6">
 
-        <div className="h-32 bg-gradient-to-r from-[#ff5757]/30" />
+        <div className="h-32 bg-[#ff5757]/20" />
 
-        <div className="px-6 pb-6">
+        <div className="p-6">
 
-          <div className="flex justify-between -mt-10 mb-4">
+          <div className="flex justify-between -mt-10">
 
-            {/* AVATAR */}
             <div className="relative">
               <div
                 onClick={() => isOwnProfile && fileInputRef.current?.click()}
-                className="w-20 h-20 rounded-full bg-[#ff5757] flex items-center justify-center text-white text-xl cursor-pointer overflow-hidden"
+                className="w-20 h-20 rounded-full bg-[#ff5757] flex items-center justify-center text-white text-xl overflow-hidden"
               >
                 {profilePic ? (
                   <img src={profilePic} className="w-full h-full object-cover" />
@@ -168,130 +154,110 @@ export default function ProfilePage({ onBack, userId }: ProfilePageProps) {
                   user.name?.[0]
                 )}
               </div>
-
-              {isOwnProfile && (
-                <>
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="absolute bottom-0 right-0 bg-[#ff5757] p-1 rounded-full"
-                  >
-                    <Camera className="w-3 h-3" />
-                  </button>
-
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    hidden
-                    onChange={handleFileChange}
-                  />
-                </>
-              )}
             </div>
 
-            {/* FOLLOW BUTTON */}
             {!isOwnProfile && (
-              isFollowing ? (
-                <button
-                  onClick={handleUnfollow}
-                  className="px-4 py-2 bg-gray-600 rounded hover:bg-gray-500"
-                >
-                  Unfollow
-                </button>
-              ) : (
-                <button
-                  onClick={handleFollow}
-                  className="px-4 py-2 bg-[#ff5757] rounded hover:bg-[#ff4545]"
-                >
-                  Follow
-                </button>
-              )
+              <button
+                onClick={isFollowing ? handleUnfollow : handleFollow}
+                className="px-4 py-2 bg-[#ff5757] rounded"
+              >
+                {isFollowing ? "Unfollow" : "Follow"}
+              </button>
             )}
           </div>
 
-          {/* NAME */}
-          {editingName ? (
-            <div className="flex gap-2">
-              <input
-                value={nameInput}
-                onChange={(e) => setNameInput(e.target.value)}
-                className="bg-[#1a1a1a] px-2 rounded"
-              />
-              <button onClick={saveName}><Check /></button>
-              <button onClick={cancelName}><X /></button>
-            </div>
-          ) : (
-            <div className="flex gap-2 items-center">
-              <h2 className="text-xl font-semibold">{user.name}</h2>
+          <h2 className="text-xl mt-3">{user.name}</h2>
+          <p className="text-gray-500 text-sm">@{user.name}</p>
 
-              {isOwnProfile && (
-                <button onClick={() => setEditingName(true)}>
-                  <Edit2 className="w-4 h-4 text-gray-400" />
-                </button>
-              )}
-            </div>
-          )}
-
-          <p className="text-gray-500 text-sm">
-            @{user.name?.toLowerCase().replace(/\s+/g, "")}
-          </p>
-
-          {/* STATS */}
-          <div className="flex gap-6 mt-4 text-sm">
-            <div><b>{posts.length}</b> Posts</div>
-            <div><b>{user.followers?.length || 0}</b> Followers</div>
-            <div><b>{user.following?.length || 0}</b> Following</div>
+          <div className="flex gap-6 mt-3 text-sm">
+            <div>{posts.length} Posts</div>
+            <div>{user.followers?.length || 0} Followers</div>
+            <div>{user.following?.length || 0} Following</div>
           </div>
-
         </div>
       </div>
 
       {/* POSTS */}
-      <div>
-        <h3 className="mb-4 font-semibold">Posts</h3>
+      {posts.map((post) => (
+        <div key={post._id} className="border border-gray-800 p-4 mb-4 rounded">
 
-        {posts.map((post) => (
-          <div key={post._id} className="border border-gray-800 p-4 mb-3 rounded">
-            <p>{post.content}</p>
-            {post.media?.length > 0 && (
+          <p>{post.content}</p>
 
-              <div className="mt-3">
+          {/* MEDIA */}
+          {post.media?.length > 0 && (
+            <div className="mt-2">
+              {post.media[0].type === "image" ? (
+                <img src={post.media[0].url} className="rounded max-h-96" />
+              ) : (
+                <video src={post.media[0].url} controls className="rounded max-h-96" />
+              )}
+            </div>
+          )}
 
-                {post.media[0].type === "image" ? (
+          {/* ACTIONS */}
+          <div className="flex gap-4 mt-3 text-sm text-gray-400">
 
-                  <img
+            <span>❤️ {post.likesCount || 0}</span>
 
-                    src={post.media[0].url}
+            <button
+              onClick={() => {
+                if (openComments === post._id) {
+                  setOpenComments(null)
+                } else {
+                  setOpenComments(post._id)
+                  if (!comments[post._id]) fetchComments(post._id)
+                }
+              }}
+              className="flex items-center gap-1"
+            >
+              <MessageSquare size={14} />
+              {post.commentsCount || 0}
+            </button>
 
-                    className="rounded-lg max-h-96"
+          </div>
 
-                  />
+          {/* COMMENTS */}
+          {openComments === post._id && (
+            <div className="mt-3 bg-[#111] p-3 rounded space-y-2">
 
-                ) : (
+              {(comments[post._id] || []).map((c) => (
+                <div key={c._id} className="text-sm">
+                  <span className="font-medium text-white">
+                    {c.author?.name}
+                  </span>
+                  <span className="text-gray-400 ml-2">
+                    {c.content}
+                  </span>
+                </div>
+              ))}
 
-                  <video
+              {/* INPUT BELOW */}
+              <div className="flex gap-2 border-t border-gray-800 pt-2">
+                <input
+                  value={commentText[post._id] || ""}
+                  onChange={(e) =>
+                    setCommentText((prev) => ({
+                      ...prev,
+                      [post._id]: e.target.value,
+                    }))
+                  }
+                  placeholder="Write a comment..."
+                  className="flex-1 bg-[#1a1a1a] px-3 py-1 rounded text-sm"
+                />
 
-                    src={post.media[0].url}
-
-                    controls
-
-                    className="rounded-lg max-h-96"
-
-                  />
-
-                )}
-
+                <button
+                  onClick={() => submitComment(post._id)}
+                  className="bg-[#ff5757] px-3 rounded text-sm"
+                >
+                  Send
+                </button>
               </div>
 
-              )}
-
-            <div className="flex gap-4 mt-2 text-gray-400 text-sm">
-              <span>❤️ {post.likesCount || 0}</span>
-              <span>💬 {post.commentsCount || 0}</span>
             </div>
-          </div>
-        ))}
-      </div>
+          )}
 
+        </div>
+      ))}
     </div>
   )
 }
