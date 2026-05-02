@@ -15,6 +15,11 @@ export default function PostsPage({
   const [posts, setPosts] = useState<any[]>([])
   const [draft, setDraft] = useState("")
   const [file, setFile] = useState<File | null>(null)
+  const [openComments, setOpenComments] = useState<string | null>(null)
+
+  const [comments, setComments] = useState<{ [key: string]: any[] }>({})
+
+  const [commentText, setCommentText] = useState("")
 
   const composerRef = useRef<HTMLTextAreaElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
@@ -93,6 +98,42 @@ export default function PostsPage({
     }
   }
 
+  const fetchComments=async(postId:string)=>{
+    try{
+      const res=await axios.get(`${API_URL}/api/posts/${postId}/comments`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      setComments((prev)=>({
+        ...prev,
+        [postId]:res.data
+      }))
+
+    }catch(err){
+      console.error(err)
+    }
+  }
+
+  const submitComment = async (postId: string) => {
+    if (!commentText.trim()) return
+  
+    try {
+      const res = await axios.post(
+        `${API_URL}/api/posts/${postId}/comments`,
+        { text: commentText },
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+  
+      setComments((prev) => ({
+        ...prev,
+        [postId]: [...(prev[postId] || []), res.data],
+      }))
+  
+      setCommentText("")
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
   return (
     <div>
 
@@ -160,80 +201,212 @@ export default function PostsPage({
 
       {/* ================= POSTS ================= */}
       <div>
-        {posts.map((post) => (
 
-          <div key={post._id} className="border-b border-gray-800 p-6">
+  {posts.map((post) => (
 
-            <div className="flex gap-3">
+    <div key={post._id} className="border-b border-gray-800 p-6">
 
-              {/* 🔥 AVATAR CLICK */}
-              <div
-                onClick={() => onUserClick?.(post.author?._id)}
-                className="text-3xl cursor-pointer hover:scale-110 transition"
-              >
-                👤
+      <div className="flex gap-3">
+
+        {/* AVATAR */}
+
+        <div
+
+          onClick={() => onUserClick?.(post.author?._id)}
+
+          className="text-3xl cursor-pointer hover:scale-110 transition"
+
+        >
+
+          👤
+
+        </div>
+
+        <div className="flex-1">
+
+          {/* NAME */}
+
+          <div className="flex gap-2 text-sm text-gray-400">
+
+            <span
+
+              onClick={() => onUserClick?.(post.author?._id)}
+
+              className="text-white font-medium cursor-pointer hover:underline"
+
+            >
+
+              {post.author?.name}
+
+            </span>
+
+            <span>•</span>
+
+            <span>{new Date(post.createdAt).toLocaleTimeString()}</span>
+
+          </div>
+
+          {/* CONTENT */}
+
+          <p className="text-gray-300 mt-2">{post.content}</p>
+
+          {/* MEDIA */}
+
+          {post.media?.length > 0 && (
+
+            <div className="mt-3">
+
+              {post.media[0].type === "image" ? (
+
+                <img src={post.media[0].url} className="rounded-xl max-h-96" />
+
+              ) : (
+
+                <video src={post.media[0].url} controls className="rounded-xl max-h-96" />
+
+              )}
+
+            </div>
+
+          )}
+
+          {/* ACTIONS */}
+
+          <div className="flex gap-6 mt-4 text-gray-400">
+
+            {/* LIKE */}
+
+            <button
+
+              onClick={() => toggleLike(post._id)}
+
+              className={`flex gap-2 ${post.isLiked ? "text-red-500" : ""}`}
+
+            >
+
+              <Heart size={16} />
+
+              {post.likesCount || 0}
+
+            </button>
+
+            {/* COMMENTS */}
+
+            <button
+
+              onClick={() => {
+
+                if (openComments === post._id) {
+
+                  setOpenComments(null)
+
+                } else {
+
+                  setOpenComments(post._id)
+
+                  if (!comments[post._id]) {
+
+                    fetchComments(post._id)
+
+                  }
+
+                }
+
+              }}
+
+              className="flex items-center gap-2"
+
+            >
+
+              <MessageSquare size={16} />
+
+              {post.commentsCount || 0}
+
+            </button>
+
+            <button className="flex gap-2">
+
+              <Share2 size={16} />
+
+            </button>
+
+            <Bookmark size={16} />
+
+          </div>
+
+          {/* ================= COMMENTS SECTION ================= */}
+
+          {openComments === post._id && (
+
+            <div className="mt-4 bg-[#111] p-3 rounded-lg">
+
+              {/* INPUT */}
+
+              <div className="flex gap-2 mb-3">
+
+                <input
+
+                  value={commentText}
+
+                  onChange={(e) => setCommentText(e.target.value)}
+
+                  placeholder="Write a comment..."
+
+                  className="flex-1 bg-[#1a1a1a] px-3 py-1 rounded text-sm"
+
+                />
+
+                <button
+
+                  onClick={() => submitComment(post._id)}
+
+                  className="bg-[#ff5757] px-3 rounded text-sm"
+
+                >
+
+                  Send
+
+                </button>
+
               </div>
 
-              <div className="flex-1">
+              {/* LIST */}
 
-                {/* 🔥 NAME CLICK */}
-                <div className="flex gap-2 text-sm text-gray-400">
+              {(comments[post._id] || []).map((c) => (
 
-                  <span
-                    onClick={() => onUserClick?.(post.author?._id)}
-                    className="text-white font-medium cursor-pointer hover:underline"
-                  >
-                    {post.author?.name}
+                <div key={c._id} className="text-sm mb-2">
+
+                  <span className="font-medium text-white">
+
+                    {c.user?.name}
+
                   </span>
 
-                  <span>•</span>
-                  <span>{new Date(post.createdAt).toLocaleTimeString()}</span>
+                  <span className="text-gray-400 ml-2">
+
+                    {c.text}
+
+                  </span>
 
                 </div>
 
-                <p className="text-gray-300 mt-2">{post.content}</p>
+              ))}
 
-                {/* MEDIA */}
-                {post.media?.length > 0 && (
-                  <div className="mt-3">
-                    {post.media[0].type === "image" ? (
-                      <img src={post.media[0].url} className="rounded-xl max-h-96" />
-                    ) : (
-                      <video src={post.media[0].url} controls className="rounded-xl max-h-96" />
-                    )}
-                  </div>
-                )}
-
-                {/* ACTIONS */}
-                <div className="flex gap-6 mt-4 text-gray-400">
-
-                  <button
-                    onClick={() => toggleLike(post._id)}
-                    className={`flex gap-2 ${post.isLiked ? "text-red-500" : ""}`}
-                  >
-                    <Heart size={16} />
-                    {post.likesCount || 0}
-                  </button>
-
-                  <button className="flex gap-2">
-                    <MessageSquare size={16} />
-                    {post.commentsCount || 0}
-                  </button>
-
-                  <button className="flex gap-2">
-                    <Share2 size={16} />
-                  </button>
-
-                  <Bookmark size={16} />
-
-                </div>
-              </div>
-
-              <MoreHorizontal size={16} />
             </div>
-          </div>
-        ))}
+
+          )}
+
+        </div>
+
+        <MoreHorizontal size={16} />
+
       </div>
+
+    </div>
+
+  ))}
+
+</div>
     </div>
   )
 }
