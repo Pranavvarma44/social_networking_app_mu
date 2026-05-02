@@ -96,7 +96,7 @@ export default function MessagesPage() {
 
     axios
 
-      .get(`${BASE_URL}/api/users/chat-use`, {
+      .get(`${BASE_URL}/api/users/chat-user`, {
 
         headers: { Authorization: `Bearer ${token}` },
 
