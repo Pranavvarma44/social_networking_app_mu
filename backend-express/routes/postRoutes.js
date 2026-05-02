@@ -6,7 +6,8 @@ import {
   getPosts,
   getFeedPosts,      // 🔥 NEW
   deletePost,
-  markPostSeen       // 🔥 NEW
+  markPostSeen ,
+  getUserPosts   ,   // 🔥 NEW
 } from "../controller/postController.js";
 
 import {
@@ -32,6 +33,7 @@ router.get("/feed", requireAuth, getFeedPosts);
 
 // GET ALL POSTS (fallback/debug)
 router.get("/", requireAuth, getPosts);
+router.get("/user/:userId", requireAuth, getUserPosts)
 
 // DELETE POST
 router.delete("/:postId", requireAuth, deletePost);

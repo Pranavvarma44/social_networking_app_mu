@@ -62,6 +62,16 @@ export const createPost = async (req, res, next) => {
   }
 };
 
+export const getUserPosts=async(req,res)=>{
+  try{
+    const posts= await Post.find({author: req.params.userId}).populate("author","name email").sort({createdAt:-1});
+    res.json(posts);
+  }catch(err){
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+}
+
 // =========================
 // GET ALL POSTS (ADMIN / DEBUG)
 // =========================
