@@ -27,6 +27,7 @@ interface HomeProps {
 }
 
 export default function Home({ setIsAuthenticated }: HomeProps) {
+
   const [activeTab, setActiveTab] = useState("home")
   const [showProfile, setShowProfile] = useState(false)
   const [profileUserId, setProfileUserId] = useState<string | null>(null)
@@ -35,6 +36,8 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
   const [search, setSearch] = useState("")
   const [results, setResults] = useState<any[]>([])
   const [showResults, setShowResults] = useState(false)
+
+  const [userName, setUserName] = useState("")
 
   // ================= PROFILE =================
   const openProfile = (userId: string) => {
@@ -56,6 +59,19 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
   const toggleNotifications = () => {
     setShowNotifications((prev) => !prev)
   }
+
+  // ================= GET USER NAME =================
+  useEffect(() => {
+    const token = localStorage.getItem("token")
+    if (!token) return
+
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]))
+      setUserName(payload.name || "")
+    } catch {
+      console.error("Invalid token")
+    }
+  }, [])
 
   // ================= SEARCH =================
   useEffect(() => {
@@ -80,53 +96,18 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
     return () => clearTimeout(delay)
   }, [search])
 
-  const [userName, setUserName] = useState("")
-
-  useEffect(() => {
-
-    const token = localStorage.getItem("token")
-
-    if (!token) return
-
-    try {
-
-      const payload = JSON.parse(atob(token.split(".")[1]))
-
-      setUserName(payload.name || "")
-
-    } catch {
-
-      console.error("Invalid token")
-
-    }
-
-  }, [])
-
   // Close dropdown on outside click
   useEffect(() => {
-    const handleClickOutside = () => {
-      setShowResults(false)
-    }
-
+    const handleClickOutside = () => setShowResults(false)
     document.addEventListener("click", handleClickOutside)
-
-    return () => {
-      document.removeEventListener("click", handleClickOutside)
-    }
+    return () => document.removeEventListener("click", handleClickOutside)
   }, [])
 
   const getInitials = (name: string) => {
     if (!name) return "U"
-  
     const parts = name.trim().split(" ")
-  
-    if (parts.length === 1) {
-      return parts[0][0].toUpperCase()
-    }
-  
-    return (
-      parts[0][0] + parts[parts.length - 1][0]
-    ).toUpperCase()
+    if (parts.length === 1) return parts[0][0].toUpperCase()
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
   }
 
   // ================= MAIN =================
@@ -180,7 +161,6 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
               {/* DROPDOWN */}
               {showResults && results.length > 0 && (
                 <div className="absolute top-12 w-80 bg-[#111] border border-gray-800 rounded-lg z-50">
-
                   {results.map((user) => (
                     <SearchUserItem
                       key={user._id}
@@ -188,28 +168,23 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
                       openProfile={openProfile}
                     />
                   ))}
-
                 </div>
               )}
             </div>
           </div>
 
-          <div className="flex gap-3">
+          {/* RIGHT */}
+          <div className="flex gap-3 items-center">
 
             <button onClick={toggleNotifications}>
               <Bell />
             </button>
 
             <button
-
               onClick={handleProfileClick}
-
-              className="bg-red-500 w-8 h-8 rounded-full"
-
+              className="bg-[#ff5757] w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold"
             >
-
-              JD
-
+              {getInitials(userName)}
             </button>
 
             <button onClick={() => setIsAuthenticated(false)}>
@@ -220,15 +195,70 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
       </div>
 
       {/* ================= BODY ================= */}
-      <div className="flex max-w-7xl mx-auto">
+      <div className="max-w-7xl mx-auto flex">
 
         {/* SIDEBAR */}
-        <div className="w-64 p-4 border-r border-gray-800">
-          <NavItem label="Home" onClick={() => setActiveTab("home")} />
-          <NavItem label="Messages" onClick={() => setActiveTab("messages")} />
-          <NavItem label="Events" onClick={() => setActiveTab("events")} />
-          <NavItem label="Study" onClick={() => setActiveTab("study")} />
-          <NavItem label="Opportunities" onClick={() => setActiveTab("opportunities")} />
+        <div className="w-64 border-r border-gray-800 min-h-screen sticky top-16 p-6">
+          <nav className="space-y-2">
+
+            <NavItem
+              icon={HomeIcon}
+              label="Home"
+              active={activeTab === "home" && !showProfile}
+              onClick={() => {
+                setActiveTab("home")
+                setShowProfile(false)
+              }}
+            />
+
+            <NavItem
+              icon={MessageCircle}
+              label="Messages"
+              active={activeTab === "messages" && !showProfile}
+              onClick={() => {
+                setActiveTab("messages")
+                setShowProfile(false)
+              }}
+            />
+
+            <NavItem
+              icon={Users}
+              label="Study Groups"
+              active={activeTab === "study" && !showProfile}
+              onClick={() => {
+                setActiveTab("study")
+                setShowProfile(false)
+              }}
+            />
+
+            <NavItem
+              icon={Calendar}
+              label="Events"
+              active={activeTab === "events" && !showProfile}
+              onClick={() => {
+                setActiveTab("events")
+                setShowProfile(false)
+              }}
+            />
+
+            <NavItem
+              icon={Briefcase}
+              label="Opportunities"
+              active={activeTab === "opportunities" && !showProfile}
+              onClick={() => {
+                setActiveTab("opportunities")
+                setShowProfile(false)
+              }}
+            />
+
+            <NavItem
+              icon={Users}
+              label="Profile"
+              active={showProfile}
+              onClick={handleProfileClick}
+            />
+
+          </nav>
         </div>
 
         {/* MAIN */}
@@ -236,6 +266,7 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
           {renderMain()}
         </div>
 
+        {/* RIGHT SIDEBAR */}
         {!showProfile && <RightSidebar />}
       </div>
     </div>
@@ -243,10 +274,18 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
 }
 
 /* ================= NAV ITEM ================= */
-function NavItem({ label, onClick }: any) {
+function NavItem({ icon: Icon, label, active, onClick }: any) {
   return (
-    <button onClick={onClick} className="block py-2 hover:text-white text-gray-400">
-      {label}
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-3 w-full px-4 py-3 rounded-lg transition-colors ${
+        active
+          ? "bg-[#ff5757] text-white"
+          : "text-gray-400 hover:bg-[#1a1a1a] hover:text-white"
+      }`}
+    >
+      <Icon className="w-5 h-5" />
+      <span>{label}</span>
     </button>
   )
 }
@@ -276,24 +315,17 @@ function SearchUserItem({ user, openProfile }: any) {
 
   const handleFollow = async (e: any) => {
     e.stopPropagation()
-
-    await axios.post(
-      `${BASE_URL}/api/users/${user._id}/follow`,
-      {},
-      { headers: { Authorization: `Bearer ${token}` } }
-    )
-
+    await axios.post(`${BASE_URL}/api/users/${user._id}/follow`, {}, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
     setIsFollowing(true)
   }
 
   const handleUnfollow = async (e: any) => {
     e.stopPropagation()
-
-    await axios.delete(
-      `${BASE_URL}/api/users/${user._id}/unfollow`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    )
-
+    await axios.delete(`${BASE_URL}/api/users/${user._id}/unfollow`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
     setIsFollowing(false)
   }
 
@@ -313,7 +345,7 @@ function SearchUserItem({ user, openProfile }: any) {
             Unfollow
           </button>
         ) : (
-          <button onClick={handleFollow} className="text-xs bg-red-500 px-2 rounded">
+          <button onClick={handleFollow} className="text-xs bg-[#ff5757] px-2 rounded">
             Follow
           </button>
         )
