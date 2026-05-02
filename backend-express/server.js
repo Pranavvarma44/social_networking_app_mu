@@ -13,7 +13,7 @@ import opportunityRoutes from "./routes/opportunityRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
 import postRoutes from "./routes/postRoutes.js";
 import conversationRoutes from "./routes/conversationRoutes.js";
-import studyGroupRoutes from "./routes/groupRoutes.js"
+import studyGroupRoutes from "./routes/studyGroups.js";
 import jwt from "jsonwebtoken";
 
 
