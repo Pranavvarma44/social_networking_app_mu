@@ -50,7 +50,7 @@ export default function RegisterPage({ setIsAuthenticated }: Props) {
     setError("")
 
     try {
-      const res = await axios.post(`${API}/auth/verify-otp`, {
+      const res = await axios.post(`${API}/api/auth/verify-otp`, {
         email,
         otp,
       })
