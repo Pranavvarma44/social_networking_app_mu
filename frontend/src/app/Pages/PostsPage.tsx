@@ -378,13 +378,13 @@ export default function PostsPage({
 
                   <span className="font-medium text-white">
 
-                    {c.user?.name}
+                    {c.author?.name}
 
                   </span>
 
                   <span className="text-gray-400 ml-2">
 
-                    {c.text}
+                    {c.content}
 
                   </span>
 
