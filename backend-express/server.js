@@ -4,9 +4,11 @@ import dotenv from "dotenv";
 import cors from "cors";
 import http from "http";
 import { Server } from "socket.io";
+import jwt from "jsonwebtoken";
 
 import User from "./models/User.js";
 import Message from "./models/Message.js";
+import GroupMessage from "./models/GroupMessage.js"; // ✅ ADD
 
 import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
@@ -15,28 +17,24 @@ import messageRoutes from "./routes/messageRoutes.js";
 import postRoutes from "./routes/postRoutes.js";
 import conversationRoutes from "./routes/conversationRoutes.js";
 import studyGroupRoutes from "./routes/studyGroups.js";
-
-import jwt from "jsonwebtoken";
+import groupMessageRoutes from "./routes/groupMessageRoutes.js";
 
 dotenv.config();
 
 const app = express();
 
-app.use(cors({
-  origin: "*",
-  credentials: true
-}));
-
+app.use(cors({ origin: "*", credentials: true }));
 app.use(express.json());
 
 // ================= ROUTES =================
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/opportunities", opportunityRoutes);
-app.use("/api/messages", messageRoutes);
+app.use("/api/messages", messageRoutes); // DM
 app.use("/api/posts", postRoutes);
 app.use("/api/conversations", conversationRoutes);
 app.use("/api/study-groups", studyGroupRoutes);
+app.use("/api/group-messages", groupMessageRoutes); // GROUP
 
 // ================= DB =================
 mongoose.connect(process.env.MONGO_URI)
@@ -48,17 +46,13 @@ const server = http.createServer(app);
 
 // ================= SOCKET =================
 const io = new Server(server, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"],
-  }
+  cors: { origin: "*", methods: ["GET", "POST"] }
 });
 
 // 🔐 AUTH
 io.use((socket, next) => {
   try {
     const token = socket.handshake.auth.token;
-
     if (!token) return next(new Error("No token"));
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -85,25 +79,19 @@ io.on("connection", (socket) => {
 
   console.log("🟢 Connected:", userId);
 
-  // =========================
-  // 🔹 JOIN DM ROOM
-  // =========================
+  // ================= DM ROOM =================
   socket.on("join_room", (room) => {
     socket.join(room);
     socket.currentRoom = room;
   });
 
-  // =========================
-  // 🔹 JOIN GROUP ROOM
-  // =========================
+  // ================= GROUP ROOM =================
   socket.on("join_group", (groupId) => {
     socket.join(groupId);
     console.log("👥 Joined group:", groupId);
   });
 
-  // =========================
-  // 💬 SEND DM MESSAGE
-  // =========================
+  // ================= 💬 DM MESSAGE =================
   socket.on("send_message", async ({ room, text }) => {
     try {
       const sender = userId;
@@ -112,7 +100,6 @@ io.on("connection", (socket) => {
         room,
         text,
         sender,
-        type: "direct",
         status: "sent",
         seenBy: [sender],
       });
@@ -126,18 +113,15 @@ io.on("connection", (socket) => {
     }
   });
 
-  // =========================
-  // 💬 SEND GROUP MESSAGE
-  // =========================
-  socket.on("group_message", async ({ groupId, text }) => {
+  // ================= 💬 GROUP MESSAGE =================
+  socket.on("send_group_message", async ({ groupId, text }) => {
     try {
       const sender = userId;
 
-      const message = await Message.create({
+      const message = await GroupMessage.create({
         group: groupId,
-        text,
         sender,
-        type: "group",
+        text,
       });
 
       const populated = await message.populate("sender", "name");
@@ -151,9 +135,7 @@ io.on("connection", (socket) => {
     }
   });
 
-  // =========================
-  // ✔ DELIVERED
-  // =========================
+  // ================= ✔ DELIVERED =================
   socket.on("message_delivered", async ({ messageId, room }) => {
     await Message.findByIdAndUpdate(messageId, {
       status: "delivered",
@@ -165,14 +147,10 @@ io.on("connection", (socket) => {
     });
   });
 
-  // =========================
-  // 👁 SEEN
-  // =========================
+  // ================= 👁 SEEN =================
   socket.on("message_seen", async ({ messageId }) => {
     const msg = await Message.findById(messageId);
     if (!msg) return;
-
-    const userId = socket.user.userId;
 
     if (msg.sender?.toString() === userId) return;
 
@@ -183,15 +161,13 @@ io.on("connection", (socket) => {
     msg.status = "seen";
     await msg.save();
 
-    io.to(msg.room || msg.group).emit("message_status", {
+    io.to(msg.room).emit("message_status", {
       messageId,
       status: "seen",
     });
   });
 
-  // =========================
-  // ✍️ TYPING
-  // =========================
+  // ================= ✍️ TYPING =================
   socket.on("typing", (room) => {
     socket.to(room).emit("typing", { userId });
   });
@@ -200,9 +176,7 @@ io.on("connection", (socket) => {
     socket.to(room).emit("stop_typing", { userId });
   });
 
-  // =========================
-  // ❌ DISCONNECT
-  // =========================
+  // ================= DISCONNECT =================
   socket.on("disconnect", () => {
     if (userId) {
       onlineUsers.delete(userId.toString());

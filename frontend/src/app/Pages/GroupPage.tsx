@@ -10,7 +10,6 @@ export default function GroupPage({ groupId, onBack }: any) {
   const [text, setText] = useState("")
 
   const socketRef = useRef<any>(null)
-  const roomRef = useRef<string | null>(null)
   const bottomRef = useRef<HTMLDivElement | null>(null)
 
   const token = localStorage.getItem("token")
@@ -24,8 +23,6 @@ export default function GroupPage({ groupId, onBack }: any) {
     }
   } catch {}
 
-  const room = groupId
-
   // ================= CHECK MEMBER =================
   const isMember = group?.members?.some(
     (m: any) => (m._id || m).toString() === currentUserId
@@ -35,27 +32,31 @@ export default function GroupPage({ groupId, onBack }: any) {
   useEffect(() => {
     if (!token) return
 
-    socketRef.current = createSocket(token)
-    const socket = socketRef.current
+    const socket = createSocket(token)
+    socketRef.current = socket
 
-    socket.on("receive_message", (msg: any) => {
+    // ✅ GROUP RECEIVE
+    socket.on("receive_group_message", (msg: any) => {
       setMessages((prev) => {
         if (prev.some((m) => m._id === msg._id)) return prev
         return [...prev, msg]
       })
     })
 
-    return () => socket.disconnect()
+    return () => {
+      if (socket) {
+        socket.disconnect()
+      }
+    }
   }, [token])
 
-  // ================= JOIN ROOM =================
+  // ================= JOIN GROUP ROOM =================
   useEffect(() => {
-    if (!room || !isMember) return
+    if (!groupId || !isMember) return
 
-    roomRef.current = room
-    socketRef.current?.emit("join_room", room)
+    socketRef.current?.emit("join_group", groupId)
 
-  }, [room, isMember])
+  }, [groupId, isMember])
 
   // ================= FETCH GROUP =================
   const fetchGroup = async () => {
@@ -74,7 +75,7 @@ export default function GroupPage({ groupId, onBack }: any) {
   const fetchMessages = async () => {
     try {
       const res = await axios.get(
-        `${BASE_URL}/api/messages/group/${groupId}`,
+        `${BASE_URL}/api/group-messages/${groupId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       )
       setMessages(res.data)
@@ -97,7 +98,6 @@ export default function GroupPage({ groupId, onBack }: any) {
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       )
-
       fetchGroup()
     } catch (err) {
       console.error(err)
@@ -112,21 +112,19 @@ export default function GroupPage({ groupId, onBack }: any) {
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       )
-
       fetchGroup()
     } catch (err) {
       console.error(err)
     }
   }
 
-  // ================= SEND =================
+  // ================= SEND MESSAGE =================
   const sendMessage = () => {
-    if (!text.trim() || !room || !isMember) return
+    if (!text.trim() || !groupId || !isMember) return
 
-    socketRef.current.emit("send_message", {
-      room,
+    socketRef.current.emit("send_group_message", {
+      groupId,
       text,
-      type: "group",
     })
 
     setText("")
@@ -158,7 +156,6 @@ export default function GroupPage({ groupId, onBack }: any) {
           </p>
         </div>
 
-        {/* JOIN / LEAVE */}
         {isMember ? (
           <button
             onClick={handleLeave}
