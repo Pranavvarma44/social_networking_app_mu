@@ -5,6 +5,7 @@ import BASE_URL from "../../api"
 export default function RightSidebar() {
 
   const [suggestions, setSuggestions] = useState<any[]>([])
+  const [followingIds, setFollowingIds] = useState<string[]>([])
 
   const token = localStorage.getItem("token")
 
@@ -28,24 +29,37 @@ export default function RightSidebar() {
 
   const handleFollow = async (id: string) => {
 
-    await axios.post(
+    try {
   
-      `${BASE_URL}/api/users/${id}/follow`,
+      await axios.post(
   
-      {},
+        `${BASE_URL}/api/users/${id}/follow`,
   
-      { headers: { Authorization: `Bearer ${token}` } }
+        {},
   
-    )
+        { headers: { Authorization: `Bearer ${token}` } }
   
-    fetchSuggestions() 
+      )
+  
+      setFollowingIds((prev) => [...prev, id])
+  
+      setTimeout(() => {
+  
+        setSuggestions((prev) => prev.filter((u) => u._id !== id))
+  
+        setFollowingIds((prev) => prev.filter((f) => f !== id))
+  
+      }, 1000)
+  
+    } catch (err) {
+  
+      console.error(err)
+  
+    }
   
   }
-
   return (
     <div className="p-4 space-y-4">
-
-      {/* 🔥 CLASSMATES */}
       <div className="bg-[#111] p-4 rounded-lg">
         <h3 className="mb-3 font-semibold">
           Classmates you might know
@@ -67,10 +81,25 @@ export default function RightSidebar() {
             </div>
 
             <button
+
               onClick={() => handleFollow(user._id)}
-              className="bg-[#ff5757] px-3 py-1 rounded text-sm"
+
+              className={`px-3 py-1 rounded text-sm transition ${
+
+                followingIds.includes(user._id)
+
+                  ? "bg-gray-600"
+
+                  : "bg-[#ff5757] hover:bg-[#ff4545]"
+
+              }`}
+
+              disabled={followingIds.includes(user._id)}
+
             >
-              Add
+
+              {followingIds.includes(user._id) ? "Following" : "Add"}
+
             </button>
           </div>
         ))}
