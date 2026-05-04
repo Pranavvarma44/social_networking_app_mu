@@ -20,7 +20,6 @@ import ProfilePage from "../Pages/ProfilePage"
 import StudyGroupsPage from "../Pages/StudyGroupsPage"
 import GroupPage from "../Pages/GroupPage"
 
-import NotificationsPanel from "../components/NotificationsPanel"
 import RightSidebar from "../components/RightSidebar"
 
 interface HomeProps {
@@ -36,8 +35,6 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
 
   const [showGroup, setShowGroup] = useState(false)
   const [groupId, setGroupId] = useState<string | null>(null)
-
-  const [showNotifications, setShowNotifications] = useState(false)
 
   const [search, setSearch] = useState("")
   const [results, setResults] = useState<any[]>([])
@@ -71,11 +68,6 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
     setProfileUserId(null)
     setShowProfile(true)
     setShowGroup(false)
-    setShowNotifications(false)
-  }
-
-  const toggleNotifications = () => {
-    setShowNotifications((prev) => !prev)
   }
 
   // ================= USER =================
@@ -99,7 +91,9 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
 
     const delay = setTimeout(async () => {
       try {
-        const res = await axios.get(`${BASE_URL}/api/users?search=${search}`)
+        const res = await axios.get(
+          `${BASE_URL}/api/users?search=${search}`
+        )
         setResults(res.data.users)
         setShowResults(true)
       } catch (err) {
@@ -127,12 +121,7 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
   const renderMain = () => {
 
     if (showGroup && groupId) {
-      return (
-        <GroupPage
-          groupId={groupId}
-          onBack={handleBackFromGroup}
-        />
-      )
+      return <GroupPage groupId={groupId} onBack={handleBackFromGroup} />
     }
 
     if (showProfile) {
@@ -168,7 +157,10 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
               <span className="text-[#ff5757]">MU</span> SOCIAL.
             </h1>
 
-            <div className="relative" onClick={(e) => e.stopPropagation()}>
+            <div
+              className="relative"
+              onClick={(e) => e.stopPropagation()}
+            >
               <Search className="absolute left-3 top-2 w-4 h-4 text-gray-500" />
 
               <input
@@ -178,6 +170,7 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
                 className="pl-10 bg-[#1a1a1a] px-3 py-2 rounded w-80"
               />
 
+              {/* DROPDOWN */}
               {showResults && results.length > 0 && (
                 <div className="absolute top-12 w-80 bg-[#111] border border-gray-800 rounded-lg z-50">
                   {results.map((user) => (
@@ -195,8 +188,13 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
           {/* RIGHT */}
           <div className="flex gap-3 items-center">
 
-            <button onClick={toggleNotifications}>
-              <Bell />
+            <button
+              onClick={() => {
+                localStorage.removeItem("token") // ✅ FIX
+                setIsAuthenticated(false)
+              }}
+            >
+              <LogOut />
             </button>
 
             <button
@@ -204,22 +202,6 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
               className="bg-[#ff5757] w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold"
             >
               {getInitials(userName)}
-            </button>
-
-            <button
-
-              onClick={() => {
-
-                localStorage.removeItem("token") // 🔥 remove token
-
-                setIsAuthenticated(false)
-
-              }}
-
-            >
-
-              <LogOut />
-
             </button>
           </div>
         </div>
@@ -259,7 +241,7 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
   )
 }
 
-/* NAV ITEM */
+/* ================= NAV ITEM ================= */
 function NavItem({ icon: Icon, label, active, onClick }: any) {
   return (
     <button
@@ -289,16 +271,7 @@ function SearchUserItem({ user, openProfile }: any) {
     }
   } catch {}
 
-  const [isFollowing, setIsFollowing] = useState(false)
-
-  useEffect(() => {
-    if (user.followers) {
-      const found = user.followers.some(
-        (f: any) => (f._id || f).toString() === currentUserId
-      )
-      setIsFollowing(found)
-    }
-  }, [user])
+  const [isFollowing, setIsFollowing] = useState(user.isFollowing)
 
   const handleFollow = async (e: any) => {
     e.stopPropagation()
@@ -335,11 +308,17 @@ function SearchUserItem({ user, openProfile }: any) {
 
       {currentUserId !== user._id && (
         isFollowing ? (
-          <button onClick={handleUnfollow} className="text-xs bg-gray-600 px-2 rounded">
-            Unfollow
+          <button
+            onClick={handleUnfollow}
+            className="text-xs bg-gray-600 px-2 rounded"
+          >
+            Following
           </button>
         ) : (
-          <button onClick={handleFollow} className="text-xs bg-[#ff5757] px-2 rounded">
+          <button
+            onClick={handleFollow}
+            className="text-xs bg-[#ff5757] px-2 rounded"
+          >
             Follow
           </button>
         )

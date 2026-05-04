@@ -118,39 +118,66 @@ router.get("/:id", requireAuth, async (req, res) => {
       res.status(500).json({ error: "Server error" });
     }
   });
-router.get("/", async (req, res) => {
+  router.get("/", requireAuth, async (req, res) => {
+
     try {
-      const {
-        page = 1,
-        limit = 10,
-        search
-      } = req.query;
+  
+      const { page = 1, limit = 10, search } = req.query;
   
       const query = {};
   
       if (search) {
+  
         query.name = { $regex: search, $options: "i" };
+  
       }
   
+      const currentUser = await User.findById(req.user._id);
+  
+      const followingIds = currentUser.following.map(id =>
+  
+        id.toString()
+  
+      );
+  
       const users = await User.find(query)
+  
         .select("name email role")
+  
         .skip((page - 1) * limit)
+  
         .limit(Number(limit));
+  
+      const updatedUsers = users.map((u) => ({
+  
+        ...u.toObject(),
+  
+        isFollowing: followingIds.includes(u._id.toString()),
+  
+      }));
   
       const total = await User.countDocuments(query);
   
       res.json({
+  
         total,
+  
         page: Number(page),
+  
         totalPages: Math.ceil(total / limit),
-        users,
+  
+        users: updatedUsers, 
       });
+  
     } catch (error) {
+  
       console.log("Users fetch error:", error);
+  
       res.status(500).json({ error: "Server error" });
+  
     }
+  
   });
-
 router.post("/:id/follow", requireAuth, async (req, res) => {
     try {
       const targetUser = await User.findById(req.params.id);
