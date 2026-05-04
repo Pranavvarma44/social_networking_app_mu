@@ -15,6 +15,7 @@ router.get("/chat-user",requireAuth,async(req,res)=>{
   try {
 
     const currentUserId = req.user._id;
+    const usersMap = new Map();
 
     // 🔹 Get current user with followers + following
 
