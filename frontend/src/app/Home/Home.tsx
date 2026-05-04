@@ -208,19 +208,19 @@ export default function Home({ setIsAuthenticated }: HomeProps) {
 
             <button
 
-              onClick={() => {
+            onClick={() => {
 
-                localStorage.removeItem("token") // 🔥 remove token
+              localStorage.removeItem("token") // 🔥 remove token
 
-                setIsAuthenticated(false)
+              setIsAuthenticated(false)
 
-              }}
+            }}
 
-            >
+          >
 
-              <LogOut />
+            <LogOut />
 
-            </button>
+          </button>
           </div>
         </div>
       </div>
