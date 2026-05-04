@@ -164,7 +164,7 @@ export default function RegisterPage({ setIsAuthenticated }: Props) {
 
             <p className="text-center text-gray-400">
               Already have an account?{" "}
-              <a href="/auth" className="text-white underline">
+              <a href="/login" className="text-white underline">
                 Login
               </a>
             </p>
