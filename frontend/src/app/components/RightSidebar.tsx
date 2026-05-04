@@ -26,6 +26,22 @@ export default function RightSidebar() {
     fetchSuggestions()
   }, [])
 
+  const handleFollow = async (id: string) => {
+
+    await axios.post(
+  
+      `${BASE_URL}/api/users/${id}/follow`,
+  
+      {},
+  
+      { headers: { Authorization: `Bearer ${token}` } }
+  
+    )
+  
+    fetchSuggestions() 
+  
+  }
+
   return (
     <div className="p-4 space-y-4">
 
@@ -51,6 +67,7 @@ export default function RightSidebar() {
             </div>
 
             <button
+              onClick={() => handleFollow(user._id)}
               className="bg-[#ff5757] px-3 py-1 rounded text-sm"
             >
               Add
