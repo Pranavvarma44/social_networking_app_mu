@@ -46,7 +46,7 @@ export default function Login({ setIsAuthenticated }: AuthPageProps) {
 
           <div className="mb-12">
             <h1 className="text-white text-sm mb-1 flex items-center gap-2">
-              <span className="text-2xl">📱</span> MU SOCIAL.
+               MU SOCIAL.
             </h1>
           </div>
 
