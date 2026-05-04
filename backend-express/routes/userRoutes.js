@@ -74,6 +74,32 @@ router.get("/chat-user",requireAuth,async(req,res)=>{
   }
 })
 
+
+router.get("/suggestions", requireAuth, async (req, res) => {
+  try {
+    const currentUserId = req.user._id;
+
+    const user = await User.findById(currentUserId);
+
+    const followingIds = user.following.map(id => id.toString());
+
+    const suggestions = await User.find({
+      _id: {
+        $ne: currentUserId,
+        $nin: followingIds,
+      },
+    })
+      .select("name profilePic")
+      .limit(5);
+
+    res.json(suggestions);
+
+  } catch (err) {
+    console.error("SUGGESTIONS ERROR:", err);
+    res.status(500).json({ error: "Failed to fetch suggestions" });
+  }
+});
+
 router.get("/:id", requireAuth, async (req, res) => {
     try {
       const user = await User.findById(req.params.id)
