@@ -89,8 +89,8 @@ MU-Social/
 ### 1. Clone the repository
 
 ``` bash
-git clone <your-repository-url>
-cd <your-project-folder>
+git clone https://github.com/Pranavvarma44/social_networking_app_mu.git
+
 ```
 
 ### 2. Install backend dependencies
