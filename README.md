@@ -209,7 +209,6 @@ hosting platform rather than committing them to the repository.
 Example production frontend configuration:
 
 ``` env
-VITE_API_URL=https://your-backend-domain.com
 ```
 
 ## Future Improvements
