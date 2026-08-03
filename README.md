@@ -200,6 +200,10 @@ Passwords and authentication credentials should always be handled
 securely, and production secrets should only be stored in environment
 variables.
 
+while testing use 
+email:se23ucse125@mahindrauniversity.edu.in
+password:12345
+
 ## Deployment
 
 The backend can be deployed on Render and connected to MongoDB Atlas.
